@@ -1,4 +1,4 @@
-module PrintHub
+module github.com/guneyin/printhub
 
 go 1.23.0
 

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"PrintHub/internal/server"
 	"fmt"
+	"github.com/guneyin/printhub/internal/server"
 	"os"
 	"strconv"
 

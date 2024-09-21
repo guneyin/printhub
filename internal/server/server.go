@@ -1,8 +1,8 @@
 package server
 
 import (
-	"PrintHub/internal/database"
 	"github.com/gofiber/fiber/v2"
+	"github.com/guneyin/printhub/internal/database"
 )
 
 type FiberServer struct {
