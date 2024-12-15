@@ -22,7 +22,12 @@ go.work
 go.work.sum
 
 # env file
-.env
+app.env
 
 #vscode
 .vscode
+
+docs/
+.env
+/.idea
+tests/test.env

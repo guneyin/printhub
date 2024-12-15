@@ -1,59 +1,33 @@
-GOPATH := $(shell go env GOPATH)
-AIR := $(GOPATH)/bin/air
-PORT := 8080
+BINARY_NAME=printhub
 
-# Build the application
-all: build
+.PHONY: build
+
+MAIN_FILE=main.go
+PACKAGE=github.com/guneyin/printhub
+VERSION=$(shell git describe --tags --always --abbrev=0 --match='v[0-9]*.[0-9]*.[0-9]*' 2> /dev/null | sed 's/^.//')
+COMMIT_HASH=$(shell git rev-list -1 HEAD)
+BUILD_TIMESTAMP=$(shell date '+%Y-%m-%dT%H:%M:%S')
+
+LDFLAG_VERSION='${PACKAGE}/utils.Version=${VERSION}'
+LDFLAG_COMMIT_HASH='${PACKAGE}/utils.CommitHash=${COMMIT_HASH}'
+LDFLAG_BUILD_TIMESTAMP='${PACKAGE}/utils.BuildTime=${BUILD_TIMESTAMP}'
+
+tidy:
+	go mod tidy
+
+vet:
+	go vet ./...
+
+doc:
+	swag init
+
+run:
+	go run ${MAIN_FILE}
 
 build:
-	@echo "Building..."
-	@go build -o main cmd/api/main.go
+	go build -o ${BINARY_NAME} -ldflags "-X ${LDFLAG_VERSION} -X ${LDFLAG_COMMIT_HASH} -X ${LDFLAG_BUILD_TIMESTAMP}" ${MAIN_FILE}
 
-# Run the application
-run: stop-run
-	@echo "Running..."
-	@go run cmd/api/main.go &
-
-# Stop the running application
-stop-run:
-	@echo "Stopping application running on port $(PORT)..."
-	@lsof -i :$(PORT) -t | xargs kill -9 || echo "No running process found on port $(PORT)."
-
-# Test the application
-test:
-	@echo "Testing..."
-	@go test ./...
-
-# Clean the binary
 clean:
-	@echo "Cleaning..."
-	@rm -f main
+	go clean
+	rm -f ${BINARY_NAME}
 
-# Watch the cmd
-run-air: stop-air
-	@if [ -x "$(AIR)" ]; then \
-		$(AIR); \
-	else \
-		read -p "air is not installed. Do you want to install it now? (y/n) " choice; \
-		if [ "$$choice" = "y" ]; then \
-			go install github.com/air-verse/air@latest; \
-			if [ -x "$(AIR)" ]; then \
-				$(AIR); \
-			else \
-				echo "Error: air binary not found after installation"; \
-				exit 1; \
-			fi; \
-		else \
-			echo "You chose not to install air. Exiting..."; \
-			exit 1; \
-		fi; \
-	fi
-
-# Stop the running air process
-stop-air:
-	@echo "Stopping air running on port $(PORT)..."
-	@lsof -i :$(PORT) -t | xargs kill -9 || echo "No running process found on port $(PORT)."
-
-.PHONY: serve stop-run stop-air
-serve:
-	./tmp/cmd/api/main

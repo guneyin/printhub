@@ -1,22 +1,36 @@
-package main
+package api
 
 import (
-	"fmt"
-	"github.com/guneyin/printhub/internal/server"
+	"github.com/gofiber/fiber/v2"
+	"github.com/guneyin/printhub/handler"
+	"github.com/guneyin/printhub/market"
+	"github.com/guneyin/printhub/server"
+	"github.com/guneyin/printhub/utils"
+	"log/slog"
 	"os"
-	"strconv"
-
-	_ "github.com/joho/godotenv/autoload"
 )
 
-func main() {
+const appName = "PrintHub"
 
-	server := server.New()
+type Application struct {
+	Name    string
+	Version string
+	Server  *fiber.App
+	Handler *handler.Handler
+}
 
-	server.RegisterFiberRoutes()
-	port, _ := strconv.Atoi(os.Getenv("PORT"))
-	err := server.Listen(fmt.Sprintf(":%d", port))
-	if err != nil {
-		panic("cannot start server")
-	}
+func NewApplication() (*Application, error) {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
+	market.InitMarket()
+
+	appServer := server.NewServer(appName)
+	appHandler := handler.New(appServer)
+
+	return &Application{
+		Name:    appName,
+		Version: utils.GetVersion().Version,
+		Server:  appServer,
+		Handler: appHandler,
+	}, nil
 }
