@@ -52,6 +52,26 @@ func AuthorizeSession(c *fiber.Ctx, sess *model.Session) {
 	s := getSession(c)
 	s.Set("session", sess)
 	_ = s.Save()
+
+	token, err := genJWT(sess)
+	if err != nil {
+		slog.ErrorContext(c.Context(), "AuthorizeSession", "error:", err.Error())
+		return
+	}
+
+	cookie := &fiber.Cookie{
+		Name:        "auth_token",
+		Value:       token,
+		Path:        "",
+		Domain:      "",
+		MaxAge:      0,
+		Expires:     sess.ExpiresAt,
+		Secure:      true,
+		HTTPOnly:    true,
+		SameSite:    "Strict",
+		SessionOnly: false,
+	}
+	c.Cookie(cookie)
 }
 
 type HTTPError struct {
@@ -74,7 +94,8 @@ func ClientGuard(c *fiber.Ctx) error {
 }
 
 func protected(c *fiber.Ctx) error {
-	role := c.Locals("role", model.UserRoleAdmin).(model.UserRole)
+	role, _ := c.Locals("role").(model.UserRole)
+
 	if Sess(c).IsValid(role) {
 		return c.Next()
 	}

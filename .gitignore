@@ -31,4 +31,4 @@ docs/
 .env
 /.idea
 tests/test.env
-data/database.db
+data/

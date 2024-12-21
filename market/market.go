@@ -19,7 +19,8 @@ type Market struct {
 
 func InitMarket() {
 	once.Do(func() {
-		cfg := config.New()
+		cfg, err := config.New()
+		handleErr(err)
 
 		db, err := database.NewSqliteDB(cfg)
 		handleErr(err)
@@ -33,7 +34,9 @@ func InitMarket() {
 
 func InitTestMarket() {
 	once.Do(func() {
-		cfg := config.New()
+		cfg, err := config.New()
+		handleErr(err)
+
 		db, err := database.NewSqliteDB(cfg)
 		handleErr(err)
 

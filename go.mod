@@ -6,6 +6,7 @@ require (
 	github.com/gofiber/contrib/swagger v1.2.0
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/gofiber/storage/sqlite3 v1.3.8
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/guneyin/disgo v0.0.0-20241205200406-0d8a9b77ebe8
 	github.com/joho/godotenv v1.5.1
