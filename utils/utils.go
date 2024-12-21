@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"time"
 )
 
@@ -32,4 +34,13 @@ func SetLastRun(t time.Time) {
 
 func GetLastRun() time.Time {
 	return lastRun
+}
+
+func RandomString(ln int) (string, error) {
+	bytes := make([]byte, ln)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(bytes)[:ln], nil
 }

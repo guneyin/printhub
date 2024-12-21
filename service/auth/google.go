@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/guneyin/printhub/market"
+	"github.com/guneyin/printhub/model"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	gapi "google.golang.org/api/oauth2/v2"
@@ -33,6 +34,7 @@ func newGoogleProvider() *googleProvider {
 func (gp *googleProvider) config() *oauth2.Config {
 	cfg := market.Get().Config
 	u := fmt.Sprintf("%s/api/auth/google/callback", cfg.ApiBaseUrl)
+
 	return &oauth2.Config{
 		RedirectURL:  u,
 		ClientID:     cfg.GoogleClientId,
@@ -42,13 +44,15 @@ func (gp *googleProvider) config() *oauth2.Config {
 	}
 }
 
-func (gp *googleProvider) InitOAuth(force bool) (string, error) {
-	opts := []oauth2.AuthCodeOption{oauth2.AccessTypeOnline}
+func (gp *googleProvider) InitOAuth(role model.UserRole, force bool) (string, error) {
+	opts := []oauth2.AuthCodeOption{
+		oauth2.AccessTypeOnline,
+	}
 	if force {
 		opts = append(opts, oauth2.ApprovalForce)
 	}
 
-	u := gp.config().AuthCodeURL("state", opts...)
+	u := gp.config().AuthCodeURL(string(role), opts...)
 	au, err := url.Parse(u)
 	if err != nil {
 		return "", err
@@ -57,7 +61,7 @@ func (gp *googleProvider) InitOAuth(force bool) (string, error) {
 	return au.String(), nil
 }
 
-func (gp *googleProvider) CompleteOAuth(ctx context.Context, code string) (*Session, error) {
+func (gp *googleProvider) CompleteOAuth(ctx context.Context, code string) (*OAuthUser, error) {
 	token, err := gp.config().Exchange(ctx, code)
 	if err != nil {
 		return nil, err
@@ -78,25 +82,16 @@ func (gp *googleProvider) CompleteOAuth(ctx context.Context, code string) (*Sess
 		return nil, err
 	}
 
-	sess := &Session{
-		Token: Token{
-			Provider:     OAuthProviderGoogle,
-			AccessToken:  token.AccessToken,
-			RefreshToken: token.RefreshToken,
-			ExpiresAt:    token.Expiry,
-			IDToken:      token.Extra("id_token").(string),
-		},
-		User: OAuthUser{
-			Email:     user.Email,
-			Name:      user.Name,
-			FirstName: user.GivenName,
-			LastName:  user.FamilyName,
-			Gender:    user.Gender,
-			UserID:    user.Id,
-			Link:      user.Link,
-			AvatarURL: user.Picture,
-			Location:  user.Locale,
-		},
+	oauth := &OAuthUser{
+		Email:     user.Email,
+		Name:      user.Name,
+		LastName:  user.FamilyName,
+		Gender:    user.Gender,
+		UserID:    user.Id,
+		AvatarURL: user.Picture,
+		Location:  user.Locale,
+		Link:      user.Link,
 	}
-	return sess, nil
+
+	return oauth, nil
 }

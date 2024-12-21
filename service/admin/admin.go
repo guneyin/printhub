@@ -6,8 +6,12 @@ import (
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/repo/admin"
 	"github.com/guneyin/printhub/repo/tenant"
-	"github.com/guneyin/printhub/repo/user"
+	"github.com/guneyin/printhub/service/auth"
+	"github.com/guneyin/printhub/service/user"
+	"github.com/guneyin/printhub/utils"
+	"log/slog"
 	"sync"
+	"time"
 )
 
 var (
@@ -16,17 +20,21 @@ var (
 )
 
 type Service struct {
-	repo   *admin.Repo
-	tenant *tenant.Repo
-	user   *user.Repo
+	repo    *admin.Repo
+	authSvc *auth.Service
+	tenant  *tenant.Repo
+	userSvc *user.Service
 }
 
 func newService() *Service {
-	return &Service{
-		repo:   admin.NewRepo(),
-		tenant: tenant.NewRepo(),
-		user:   user.NewRepo(),
+	s := &Service{
+		repo:    admin.NewRepo(),
+		authSvc: auth.GetService(),
+		tenant:  tenant.NewRepo(),
+		userSvc: user.GetService(),
 	}
+	s.boostrap()
+	return s
 }
 
 func GetService() *Service {
@@ -34,6 +42,46 @@ func GetService() *Service {
 		service = newService()
 	})
 	return service
+}
+
+func (s *Service) boostrap() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if cnt, _ := s.repo.GetCount(ctx); cnt == 0 {
+		pwd, err := utils.RandomString(10)
+		if err != nil {
+			slog.Error("random string error", "error:", err)
+			return
+		}
+
+		u := &model.User{
+			Role:     model.UserRoleAdmin,
+			Email:    "admin@ph.com",
+			Name:     "Admin",
+			Password: pwd,
+			Active:   true,
+		}
+
+		err = s.repo.Boostrap(ctx, u)
+		if err != nil {
+			slog.Error("boostrap admin user error", "error:", err)
+			return
+		}
+
+		slog.Info("boostrap admin user", "user:", u.Email, "password:", pwd)
+		return
+	}
+
+	return
+}
+
+func (s *Service) GetCount(ctx context.Context) (int64, error) {
+	return s.repo.GetCount(ctx)
+}
+
+func (s *Service) AuthLogin(ctx context.Context, r *model.AuthLoginRequest) (*model.Session, error) {
+	return s.authSvc.BasicAuth(ctx, model.UserRoleAdmin, r.Email, r.Password)
 }
 
 func (s *Service) TenantCreate(ctx context.Context, t *model.Tenant) error {
@@ -46,7 +94,8 @@ func (s *Service) TenantCreate(ctx context.Context, t *model.Tenant) error {
 		Role:  model.UserRoleTenant,
 		Email: t.Email,
 	}
-	err = s.user.Create(ctx, u)
+
+	_, err = s.userSvc.InitUser(ctx, u)
 	if err != nil {
 		return errors.New("tenant created but user create failed")
 	}

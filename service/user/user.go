@@ -36,9 +36,9 @@ func (s *Service) InitUser(ctx context.Context, u *model.User) (*model.User, err
 		return s.initClientUser(ctx, found, u)
 	case model.UserRoleTenant:
 		return s.initTenantUser(ctx, found, u)
+	default:
+		return nil, errors.New("invalid user role")
 	}
-
-	return nil, nil
 }
 
 func (s *Service) GetByUUID(ctx context.Context, uuid string) (*model.User, error) {

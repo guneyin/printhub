@@ -10,12 +10,13 @@ import (
 type Config struct {
 	ApiBaseUrl string `env:"PH_API_BASE_URL"`
 	ApiPort    string `env:"PH_API_PORT"`
-	DbPath     string `env:"PH_DB_PATH"`
-	DbHost     string `env:"PH_DB_HOST"`
-	DbPort     string `env:"PH_DB_PORT"`
-	DbUser     string `env:"PH_DB_USER"`
-	DbPwd      string `env:"PH_DB_PWD"`
-	DbName     string `env:"PH_DB_NAME"`
+
+	DbPath string `env:"PH_DB_PATH"`
+	DbHost string `env:"PH_DB_HOST"`
+	DbPort string `env:"PH_DB_PORT"`
+	DbUser string `env:"PH_DB_USER"`
+	DbPwd  string `env:"PH_DB_PWD"`
+	DbName string `env:"PH_DB_NAME"`
 
 	GoogleClientId     string `env:"PH_GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string `env:"PH_GOOGLE_CLIENT_SECRET"`

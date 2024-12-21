@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/contrib/swagger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/favicon"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/guneyin/printhub/handler/mw"
 	"os"
@@ -42,7 +41,6 @@ func NewServer(appName string) *fiber.App {
 
 	app.Use(cors.New())
 	app.Use(recover.New())
-	app.Use(favicon.New())
 
 	if _, err := os.Stat("./docs/swagger.json"); err == nil {
 		app.Use(swagger.New(swagger.Config{
@@ -52,10 +50,6 @@ func NewServer(appName string) *fiber.App {
 			Title:    "Swagger API Docs",
 		}))
 	}
-
-	app.Get("/test", func(ctx *fiber.Ctx) error {
-		return ctx.JSON(fiber.Map{"status": "ok"})
-	})
 
 	return app
 }

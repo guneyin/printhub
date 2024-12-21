@@ -3,16 +3,18 @@ package auth
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/guneyin/printhub/handler/mw"
+	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/service/auth"
+	"github.com/guneyin/printhub/service/user"
 	"net/http"
-	"strings"
 	"sync"
 )
 
 const handlerName = "auth"
 
 type Handler struct {
-	svc *auth.Service
+	svc     *auth.Service
+	userSvc *user.Service
 }
 
 var (
@@ -23,11 +25,13 @@ var (
 func InitHandler(r fiber.Router) {
 	once.Do(func() {
 		handler = &Handler{
-			svc: auth.GetService(),
+			svc:     auth.GetService(),
+			userSvc: user.GetService(),
 		}
 		handler.setRoutes(r)
 	})
 }
+
 func (h *Handler) name() string {
 	return handlerName
 }
@@ -35,53 +39,82 @@ func (h *Handler) name() string {
 func (h *Handler) setRoutes(r fiber.Router) {
 	g := r.Group(h.name())
 
-	g.Get("/:provider", h.init)
-	g.Get("/:provider/callback", h.callback)
+	g.Get("/oauth/:provider", h.InitOAuth)
+	g.Get("/oauth/:provider/CompleteOAuth", h.CompleteOAuth)
+	g.Post("/login", h.BasicAuth)
 }
 
-// Init
+// InitOAuth Init
 // @Summary Init auth.
 // @Description Start OAuth2 authorization.
-// @Tags Auth init
+// @Tags Auth InitOAuth
 // @Accept json
 // @Produce json
 // @Param provider path string true "provider"
-// @Failure all {object} mw.HTTPError{}
-// @Router /auth/{provider} [get]
-func (h *Handler) init(c *fiber.Ctx) error {
-	u, err := h.svc.InitOAuth(c.Params("provider"), c.QueryBool("force"))
+// @Param role query string true "role"
+// @Param force query bool false "force"
+// @Failure default {object} mw.HTTPError
+// @Router /auth/oauth/{provider} [get]
+func (h *Handler) InitOAuth(c *fiber.Ctx) error {
+	role, err := model.NewUserRole(c.Query("role"))
 	if err != nil {
 		return err
 	}
 
-	if role := strings.TrimSpace(c.Query("role")); role != "" {
-		sess := mw.GetSession(c)
-		sess.Set("role", role)
-		_ = sess.Save()
+	u, err := h.svc.InitOAuth(
+		c.Params("provider"),
+		role,
+		c.QueryBool("force"))
+	if err != nil {
+		return err
 	}
 
 	return c.Redirect(u, http.StatusFound)
 }
 
-func (h *Handler) callback(c *fiber.Ctx) error {
-	sessionData, err := h.svc.CompleteOAuth(c.Context(), c.Params("provider"), c.Query("code"))
+func (h *Handler) CompleteOAuth(c *fiber.Ctx) error {
+	role, err := model.NewUserRole(c.Query("state"))
 	if err != nil {
 		return err
 	}
 
-	//todo: keep working here
-	sess := mw.GetSession(c)
-	//role := sess.Get("role")
-
-	if err = sess.Reset(); err != nil {
+	sess, err := h.svc.CompleteOAuth(c.Context(), role, c.Params("provider"), c.Query("code"))
+	if err != nil {
 		return err
 	}
 
-	sess.Set("user", sessionData.User)
+	mw.AuthorizeSession(c, sess)
 
-	if err = sess.Save(); err != nil {
+	return c.SendStatus(fiber.StatusOK)
+}
+
+// BasicAuth
+// @Summary login.
+// @Description login.
+// @Tags login
+// @Accept json
+// @Produce json
+// @Param role query string true "role" Enums(admin, tenant, client)
+// @Param tenant body model.AuthLoginRequest true "login info"
+// @Failure default {object} mw.HTTPError
+// @Router /auth/login [post]
+func (h *Handler) BasicAuth(c *fiber.Ctx) error {
+	role, err := model.NewUserRole(c.Query("role"))
+	if err != nil {
 		return err
 	}
 
-	return c.JSON(sessionData.User)
+	req, err := model.NewAuthLoginRequest(c.Body())
+	if err != nil {
+		return err
+	}
+
+	sess, err := h.svc.BasicAuth(c.Context(), role, req.Email, req.Password)
+	if err != nil {
+		return err
+	}
+
+	mw.AuthorizeSession(c, sess)
+
+	return c.SendStatus(fiber.StatusOK)
 }

@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"github.com/guneyin/printhub/model"
 )
 
 const (
@@ -10,8 +11,8 @@ const (
 )
 
 type Provider interface {
-	InitOAuth(force bool) (string, error)
-	CompleteOAuth(ctx context.Context, code string) (*Session, error)
+	InitOAuth(role model.UserRole, force bool) (string, error)
+	CompleteOAuth(ctx context.Context, code string) (*OAuthUser, error)
 }
 
 func NewProvider(provider string) (Provider, error) {

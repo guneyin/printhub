@@ -31,13 +31,13 @@ func (r *Repo) GetByUUID(ctx context.Context, uuid string) (*model.User, error) 
 func (r *Repo) GetByEmail(ctx context.Context, email string, role model.UserRole) (*model.User, error) {
 	ctx = context.WithoutCancel(ctx)
 
-	ur, err := model.NewUserRole(role)
+	ur, err := model.NewUserRole(string(role))
 	if err != nil {
 		return nil, err
 	}
 
-	user := &model.User{Email: email, Role: ur}
-	tx := r.db.Model(user).Find(user)
+	var user *model.User
+	tx := r.db.Debug().Model(&model.User{}).Where("email = ? and role = ?", email, ur).Find(&user)
 	return user, tx.Error
 }
 

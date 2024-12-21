@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -30,12 +31,24 @@ type UserList []User
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {
 	u.UUID = uuid.New().String()
+	u.Password = u.PasswordHash()
 
 	if u.Role == "" {
 		u.Role = UserRoleClient
 	}
 
 	return nil
+}
+
+func (u *User) BeforeUpdate(tx *gorm.DB) error {
+	u.Password = u.PasswordHash()
+	return nil
+}
+
+func (u *User) Safe() *User {
+	user := *u
+	user.Password = ""
+	return &user
 }
 
 func (u *User) JSON() []byte {
@@ -45,13 +58,34 @@ func (u *User) JSON() []byte {
 	return b
 }
 
+func (u *User) PasswordHash() string {
+	if u.Password == "" {
+		return ""
+	}
+
+	hashed, _ := bcrypt.GenerateFromPassword(
+		[]byte(u.Password),
+		bcrypt.DefaultCost,
+	)
+	return string(hashed)
+}
+
 func (u *User) IsActivated() bool {
 	return u.Active
 }
 
-func NewUserRole(s any) (UserRole, error) {
-	if role, ok := s.(UserRole); ok {
-		return role, nil
+func (u *User) IsValid(role UserRole) bool {
+	if usr := u; usr != nil {
+		return usr.Role == role
 	}
-	return "", fmt.Errorf("invalid user role: %v", s)
+	return false
+}
+
+func NewUserRole(s string) (UserRole, error) {
+	switch UserRole(s) {
+	case UserRoleAdmin, UserRoleTenant, UserRoleClient:
+		return UserRole(s), nil
+	default:
+		return "", fmt.Errorf("invalid user role: %s", s)
+	}
 }

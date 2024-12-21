@@ -49,7 +49,7 @@ func (h *Handler) setRoutes(r fiber.Router) {
 // @Param module query string true "module"
 // @Param key query string true "key"
 // @Success 200 {object} model.ConfigList
-// @Failure all {object} mw.HTTPError{}
+// @Failure default {object} mw.HTTPError
 // @Router /config [get]
 func (h *Handler) get(c *fiber.Ctx) error {
 	//id := c.Locals("orgId").(string)
@@ -70,7 +70,7 @@ func (h *Handler) get(c *fiber.Ctx) error {
 // @Produce json
 // @Param location body model.ConfigList true "Config data"
 // @Success 200 {string} string "OK"
-// @Failure all {object} mw.HTTPError{}
+// @Failure default {object} mw.HTTPError
 // @Router /config [put]
 func (h *Handler) put(c *fiber.Ctx) error {
 	cfg, err := model.NewConfigList(c.Body())
@@ -91,10 +91,9 @@ func (h *Handler) put(c *fiber.Ctx) error {
 // @Param module query string true "module"
 // @Param key query string true "key"
 // @Success 200 {string} string "OK"
-// @Failure all {object} mw.HTTPError{}
+// @Failure default {object} mw.HTTPError
 // @Router /config [delete]
 func (h *Handler) delete(c *fiber.Ctx) error {
-	//id := c.Locals("orgId").(string)
 	id := c.Query("identity")
 	return h.svc.Delete(c.Context(), id, c.Query("module"), c.Query("key"))
 }

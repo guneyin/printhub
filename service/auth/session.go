@@ -1,27 +1,8 @@
 package auth
 
 import (
-	"encoding/gob"
-	"time"
+	"github.com/guneyin/printhub/model"
 )
-
-func init() {
-	gob.Register(&Token{})
-	gob.Register(&OAuthUser{})
-}
-
-type Session struct {
-	Token Token     `json:"token"`
-	User  OAuthUser `json:"user,omitempty"`
-}
-
-type Token struct {
-	Provider     string    `json:"provider,omitempty"`
-	AccessToken  string    `json:"accessToken,omitempty"`
-	RefreshToken string    `json:"refreshToken,omitempty"`
-	ExpiresAt    time.Time `json:"expiresAt"`
-	IDToken      string    `json:"idToken,omitempty"`
-}
 
 type OAuthUser struct {
 	Email     string `json:"email,omitempty"`
@@ -33,4 +14,13 @@ type OAuthUser struct {
 	AvatarURL string `json:"avatarURL,omitempty"`
 	Location  string `json:"location,omitempty"`
 	Link      string `json:"link,omitempty"`
+}
+
+func (o *OAuthUser) ToUser() *model.User {
+	return &model.User{
+		Email:     o.Email,
+		Name:      o.Email,
+		Password:  "",
+		AvatarURL: o.AvatarURL,
+	}
 }

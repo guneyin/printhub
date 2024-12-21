@@ -3,42 +3,88 @@ package mw
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/session"
-	"github.com/guneyin/printhub/service/auth"
+	"github.com/gofiber/fiber/v2/utils"
+	"github.com/gofiber/storage/sqlite3"
+	"github.com/guneyin/printhub/market"
+	"github.com/guneyin/printhub/model"
 	"log/slog"
+	"sync"
+	"time"
 )
 
-//var store = session.New(session.Config{Storage: sqlite3.New(sqlite3.Config{
-//	Database: market.Get().Config.DbPath,
-//	Table:    "sessions",
-//})})
+var (
+	onceStore sync.Once
+	ss        *session.Store
+)
 
-var store = session.New()
+func store() *session.Store {
+	onceStore.Do(func() {
+		ss = session.New(session.Config{
+			Expiration: time.Hour * 72,
+			Storage: sqlite3.New(sqlite3.Config{
+				Database: market.Get().Config.DbPath,
+				Table:    "sessions",
+			}),
+			KeyLookup:         "cookie:session_id",
+			CookieDomain:      "",
+			CookiePath:        "",
+			CookieSecure:      true,
+			CookieHTTPOnly:    true,
+			CookieSameSite:    "Strict",
+			CookieSessionOnly: false,
+			KeyGenerator:      utils.UUIDv4,
+			CookieName:        "",
+		})
+	})
+	return ss
+}
 
-func GetSession(c *fiber.Ctx) *session.Session {
-	ss, err := store.Get(c)
+func getSession(c *fiber.Ctx) *session.Session {
+	s, err := store().Get(c)
 	if err != nil {
 		slog.ErrorContext(c.Context(), "getSession", "error:", err.Error())
 		return &session.Session{}
 	}
-	return ss
+	return s
+}
+
+func AuthorizeSession(c *fiber.Ctx, sess *model.Session) {
+	s := getSession(c)
+	s.Set("session", sess)
+	_ = s.Save()
 }
 
 type HTTPError struct {
 	Error string `json:"error"`
 }
 
-func Protected() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		if User(c) != nil {
-			return c.Next()
-		}
-		return fiber.ErrUnauthorized
-	}
+func AdminGuard(c *fiber.Ctx) error {
+	c.Locals("role", model.UserRoleAdmin)
+	return protected(c)
 }
 
-func User(c *fiber.Ctx) *auth.OAuthUser {
-	if user := GetSession(c).Get("user"); user != nil {
-		return user.(*auth.OAuthUser)
+func TenantGuard(c *fiber.Ctx) error {
+	c.Locals("role", model.UserRoleTenant)
+	return protected(c)
+}
+
+func ClientGuard(c *fiber.Ctx) error {
+	c.Locals("role", model.UserRoleClient)
+	return protected(c)
+}
+
+func protected(c *fiber.Ctx) error {
+	role := c.Locals("role", model.UserRoleAdmin).(model.UserRole)
+	if Sess(c).IsValid(role) {
+		return c.Next()
 	}
-	return nil
+	return fiber.ErrUnauthorized
+
+}
+
+func Sess(c *fiber.Ctx) *model.Session {
+	if s := getSession(c).Get("session"); s != nil {
+		return s.(*model.Session)
+	}
+	return &model.Session{}
 }
