@@ -2,6 +2,7 @@ package user
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/guneyin/printhub/handler/mw"
 	"github.com/guneyin/printhub/service/user"
 	"sync"
 )
@@ -31,5 +32,28 @@ func (h *Handler) name() string {
 }
 
 func (h *Handler) setRoutes(r fiber.Router) {
-	//g := h.r.Group(h.name())
+	g := r.Group(h.name()).Use(mw.AdminGuard)
+
+	g.Get("/me", h.me)
+}
+
+// Me
+// @Summary user profile.
+// @Description user profile.
+// @Tags me
+// @Accept json
+// @Produce json
+// @Success 200 {object} model.Session
+// @Failure default {object} mw.HTTPError
+// @Router /user/me [get]
+func (h *Handler) me(c *fiber.Ctx) error {
+	if sess := mw.Sess(c); sess != nil {
+		u, err := h.svc.GetByEmail(c.Context(), sess.User.Email, sess.User.Role)
+		if err != nil {
+			return fiber.ErrNotFound
+		}
+		return c.JSON(u.Safe())
+	}
+
+	return fiber.ErrForbidden
 }

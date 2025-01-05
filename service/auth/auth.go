@@ -3,9 +3,16 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/guneyin/printhub/mail"
+	"github.com/guneyin/printhub/market"
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/service/user"
+	"github.com/guneyin/printhub/utils"
 	"golang.org/x/crypto/bcrypt"
+	"log/slog"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -30,13 +37,42 @@ func GetService() *Service {
 	return service
 }
 
-func (s *Service) InitOAuth(provider string, role model.UserRole, force bool) (string, error) {
+func (s *Service) Register(ctx context.Context, u *model.User) error {
+	if u.Role != model.UserRoleClient {
+		return fmt.Errorf("%s user not allowed", u.Role)
+	}
+
+	if err := u.Validate(); err != nil {
+		return err
+	}
+
+	err := s.userSvc.Create(ctx, u)
+	if err != nil {
+		return err
+	}
+
+	token, err := generateToken(u.UUID)
+	if err != nil {
+		slog.Warn(err.Error())
+		return nil
+	}
+
+	rp := mail.NewVerifyUserEmail(token)
+	err = rp.Send(u.Email, "Hesabınızı doğrulayın")
+	if err != nil {
+		slog.Warn(err.Error())
+	}
+
+	return nil
+}
+
+func (s *Service) InitOAuth(provider string, role model.UserRole, cbUrl string, force bool) (string, error) {
 	p, err := NewProvider(provider)
 	if err != nil {
 		return "", err
 	}
 
-	return p.InitOAuth(role, force)
+	return p.InitOAuth(role, cbUrl, force)
 }
 
 func (s *Service) CompleteOAuth(ctx context.Context, role model.UserRole, provider, code string) (*model.Session, error) {
@@ -52,7 +88,7 @@ func (s *Service) CompleteOAuth(ctx context.Context, role model.UserRole, provid
 
 	u := oauth.ToUser()
 	u.Role = role
-	return s.getSession("oauth", u)
+	return s.createSession("oauth", u)
 }
 
 func (s *Service) BasicAuth(ctx context.Context, role model.UserRole, email, password string) (*model.Session, error) {
@@ -66,15 +102,84 @@ func (s *Service) BasicAuth(ctx context.Context, role model.UserRole, email, pas
 		return nil, errors.New("invalid auth credentials")
 	}
 
-	return s.getSession("basic", u)
+	return s.createSession("basic", u)
 }
 
-func (s *Service) getSession(provider string, u *model.User) (*model.Session, error) {
+func (s *Service) createSession(provider string, u *model.User) (*model.Session, error) {
 	return &model.Session{
-		Provider:  provider,
-		ExpiresAt: time.Now().Add(time.Hour * 24 * 30),
-		UserId:    u.UUID,
-		UserEmail: u.Email,
-		UserRole:  u.Role,
+		Provider: provider,
+		User:     *u.Safe(),
 	}, nil
+}
+
+func (s *Service) Recover(ctx context.Context, email string, role model.UserRole) {
+	u, err := s.userSvc.GetByEmail(ctx, email, role)
+	if err != nil {
+		slog.Warn(err.Error())
+		return
+	}
+	if !u.IsActivated() {
+		return
+	}
+
+	token, err := generateToken(u.UUID)
+	if err != nil {
+		slog.Warn(err.Error())
+		return
+	}
+
+	rp := mail.NewRecoverPasswordEmail(token)
+	err = rp.Send(email, "Parola Sıfırlama")
+	if err != nil {
+		slog.Warn(err.Error())
+	}
+}
+
+func (s *Service) Validate(ctx context.Context, token string) (*model.User, error) {
+	uuid, err := validateToken(token)
+	if err != nil {
+		return nil, err
+	}
+	return s.userSvc.GetByUUID(ctx, uuid)
+}
+
+func (s *Service) ChangePassword(ctx context.Context, token, password string) error {
+	uuid, err := validateToken(token)
+	if err != nil {
+		return err
+	}
+	u := &model.User{Password: password}
+	return s.userSvc.Update(ctx, uuid, u)
+}
+
+func generateToken(uid string) (string, error) {
+	cfg := market.Get().Config
+	tokenStr := fmt.Sprintf("%s:%d", uid, time.Now().Unix())
+	return utils.Encrypt(tokenStr, []byte(cfg.AuthSecret))
+}
+
+func validateToken(hash string) (string, error) {
+	cfg := market.Get().Config
+	token, err := utils.Decrypt(hash, []byte(cfg.AuthSecret))
+	if err != nil {
+		return "", err
+	}
+
+	split := strings.Split(token, ":")
+	if len(split) != 2 {
+		return "", errors.New("invalid token")
+	}
+
+	uuid, ts := split[0], split[1]
+	timestamp, err := strconv.ParseInt(ts, 10, 64)
+	if err != nil {
+		return "", errors.New("invalid token")
+	}
+
+	since := time.Since(time.Unix(timestamp, 0))
+	if since > time.Minute*10 {
+		return "", errors.New("token expired")
+	}
+
+	return uuid, nil
 }

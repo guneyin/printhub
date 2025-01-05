@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/gob"
-	"time"
 )
 
 func init() {
@@ -10,15 +9,12 @@ func init() {
 }
 
 type Session struct {
-	Provider     string    `json:"provider"`
-	AccessToken  string    `json:"accessToken"`
-	RefreshToken string    `json:"refreshToken"`
-	ExpiresAt    time.Time `json:"expiresAt"`
-	UserId       string    `json:"userId"`
-	UserEmail    string    `json:"userEmail"`
-	UserRole     UserRole  `json:"userRole"`
+	ID       string `json:"id"`
+	Provider string `json:"provider"`
+	User     User   `json:"user"`
 }
 
+// todo: s.user.role boş
 func (s *Session) IsValid(role UserRole) bool {
-	return s.UserRole == role
+	return s.User.Role == role
 }

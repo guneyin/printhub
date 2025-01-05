@@ -5,8 +5,8 @@ import (
 	"errors"
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/repo/admin"
-	"github.com/guneyin/printhub/repo/tenant"
 	"github.com/guneyin/printhub/service/auth"
+	"github.com/guneyin/printhub/service/tenant"
 	"github.com/guneyin/printhub/service/user"
 	"github.com/guneyin/printhub/utils"
 	"log/slog"
@@ -22,7 +22,7 @@ var (
 type Service struct {
 	repo    *admin.Repo
 	authSvc *auth.Service
-	tenant  *tenant.Repo
+	tenant  *tenant.Service
 	userSvc *user.Service
 }
 
@@ -30,7 +30,7 @@ func newService() *Service {
 	s := &Service{
 		repo:    admin.NewRepo(),
 		authSvc: auth.GetService(),
-		tenant:  tenant.NewRepo(),
+		tenant:  tenant.GetService(),
 		userSvc: user.GetService(),
 	}
 	s.boostrap()
@@ -78,10 +78,6 @@ func (s *Service) boostrap() {
 
 func (s *Service) GetCount(ctx context.Context) (int64, error) {
 	return s.repo.GetCount(ctx)
-}
-
-func (s *Service) AuthLogin(ctx context.Context, r *model.AuthLoginRequest) (*model.Session, error) {
-	return s.authSvc.BasicAuth(ctx, model.UserRoleAdmin, r.Email, r.Password)
 }
 
 func (s *Service) TenantCreate(ctx context.Context, t *model.Tenant) error {

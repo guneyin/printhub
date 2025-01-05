@@ -6,7 +6,6 @@ import (
 	"github.com/guneyin/printhub/handler/auth"
 	"github.com/guneyin/printhub/handler/config"
 	"github.com/guneyin/printhub/handler/disk"
-	"github.com/guneyin/printhub/handler/profile"
 	"github.com/guneyin/printhub/handler/tenant"
 	"github.com/guneyin/printhub/handler/user"
 )
@@ -36,5 +35,4 @@ func (h *Handler) registerHandlers() {
 	config.InitHandler(h.router)
 	tenant.InitHandler(h.router)
 	disk.InitHandler(h.router)
-	profile.InitHandler(h.router)
 }

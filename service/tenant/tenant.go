@@ -27,8 +27,28 @@ func GetService() *Service {
 	return service
 }
 
+func (s *Service) Create(ctx context.Context, t *model.Tenant) error {
+	return s.repo.Create(ctx, t)
+}
+
+func (s *Service) GetTenantList(ctx context.Context) (model.TenantList, error) {
+	return s.repo.GetTenantList(ctx)
+}
+
 func (s *Service) GetByUUID(ctx context.Context, uuid string) (*model.Tenant, error) {
 	return s.repo.GetByUUID(ctx, uuid)
+}
+
+func (s *Service) Delete(ctx context.Context, t *model.Tenant) error {
+	return nil
+}
+
+func (s *Service) Update(ctx context.Context, t *model.Tenant) error {
+	return nil
+}
+
+func (s *Service) AddUser(ctx context.Context, t *model.Tenant, u *model.User) error {
+	return s.repo.AddUser(ctx, t, u)
 }
 
 //func (s *Service) GetConfig(ctx context.Context, key string) (*model.ConfigList, error) {

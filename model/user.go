@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -28,6 +29,12 @@ type User struct {
 }
 
 type UserList []User
+
+func NewUser(d []byte) (*User, error) {
+	u := &User{}
+	err := json.Unmarshal(d, u)
+	return u, err
+}
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {
 	u.UUID = uuid.New().String()
@@ -79,6 +86,21 @@ func (u *User) IsValid(role UserRole) bool {
 		return usr.Role == role
 	}
 	return false
+}
+
+func (u *User) Validate() error {
+	var err error
+
+	if u.Role == "" {
+		err = errors.Join(err, errors.New("role is required"))
+	}
+	if u.Email == "" {
+		err = errors.Join(err, errors.New("email is required"))
+	}
+	if u.Password == "" {
+		err = errors.Join(err, errors.New("password is required"))
+	}
+	return err
 }
 
 func NewUserRole(s string) (UserRole, error) {

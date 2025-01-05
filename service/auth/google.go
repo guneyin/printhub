@@ -33,8 +33,12 @@ func newGoogleProvider() *googleProvider {
 
 func (gp *googleProvider) config() *oauth2.Config {
 	cfg := market.Get().Config
-	u := fmt.Sprintf("%s/api/auth/google/callback", cfg.ApiBaseUrl)
 
+	//u := cbUrl
+	//if cbUrl == "" {
+	//u := fmt.Sprintf("%s/api/auth/google/callback", cfg.ApiBaseUrl)
+	//}
+	u := "http://localhost:5173/oauth/google/callback"
 	return &oauth2.Config{
 		RedirectURL:  u,
 		ClientID:     cfg.GoogleClientId,
@@ -44,7 +48,7 @@ func (gp *googleProvider) config() *oauth2.Config {
 	}
 }
 
-func (gp *googleProvider) InitOAuth(role model.UserRole, force bool) (string, error) {
+func (gp *googleProvider) InitOAuth(role model.UserRole, cbUrl string, force bool) (string, error) {
 	opts := []oauth2.AuthCodeOption{
 		oauth2.AccessTypeOnline,
 	}
@@ -52,11 +56,20 @@ func (gp *googleProvider) InitOAuth(role model.UserRole, force bool) (string, er
 		opts = append(opts, oauth2.ApprovalForce)
 	}
 
-	u := gp.config().AuthCodeURL(string(role), opts...)
+	config := gp.config()
+	//config.RedirectURL = cbUrl
+
+	u := config.AuthCodeURL(string(role), opts...)
+	//u := config.AuthCodeURL("", opts...)
 	au, err := url.Parse(u)
 	if err != nil {
 		return "", err
 	}
+	//query := au.Query()
+	//query.Set("role", string(role))
+	//au.RawQuery = query.Encode()
+
+	fmt.Println(au.String())
 
 	return au.String(), nil
 }

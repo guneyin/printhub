@@ -23,9 +23,12 @@ func NewRepo() *Repo {
 func (r *Repo) GetByUUID(ctx context.Context, uuid string) (*model.User, error) {
 	ctx = context.WithoutCancel(ctx)
 
-	user := &model.User{UUID: uuid}
-	tx := r.db.Model(user).Find(user)
-	return user, tx.Error
+	user := &model.User{}
+	tx := r.db.Debug().Where("uuid = ?", uuid).Find(user)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+	return user, nil
 }
 
 func (r *Repo) GetByEmail(ctx context.Context, email string, role model.UserRole) (*model.User, error) {
@@ -37,8 +40,11 @@ func (r *Repo) GetByEmail(ctx context.Context, email string, role model.UserRole
 	}
 
 	var user *model.User
-	tx := r.db.Debug().Model(&model.User{}).Where("email = ? and role = ?", email, ur).Find(&user)
-	return user, tx.Error
+	tx := r.db.Debug().Model(&model.User{}).Where("email = ? and role = ?", email, ur).First(&user)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+	return user, nil
 }
 
 func (r *Repo) Create(ctx context.Context, u *model.User) error {
@@ -49,6 +55,12 @@ func (r *Repo) Create(ctx context.Context, u *model.User) error {
 			UpdateAll: true,
 		}).Save(u)
 
+	return tx.Error
+}
+
+func (r *Repo) Update(ctx context.Context, u *model.User) error {
+	ctx = context.WithoutCancel(ctx)
+	tx := r.db.Debug().Updates(u)
 	return tx.Error
 }
 

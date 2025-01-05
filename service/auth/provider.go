@@ -11,7 +11,7 @@ const (
 )
 
 type Provider interface {
-	InitOAuth(role model.UserRole, force bool) (string, error)
+	InitOAuth(role model.UserRole, cbUrl string, force bool) (string, error)
 	CompleteOAuth(ctx context.Context, code string) (*OAuthUser, error)
 }
 
