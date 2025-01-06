@@ -49,6 +49,8 @@ func TestForgotPassword(t *testing.T) {
 func TestValidate(t *testing.T) {
 	ctx := context.Background()
 	svc := newService()
+
+	token := generateTestToken()
 	u, err := svc.ValidateUser(ctx, token)
 	if err != nil {
 		t.Fatal(err)
@@ -56,9 +58,13 @@ func TestValidate(t *testing.T) {
 	t.Log(u.Safe())
 }
 
-const token = "xDA9HiSLJ6kqGHqZZhJn3k4BONLUIniAJq1Q4SdZmVWAiFqy4RssHST1CI5tk2oFtTMqmirXDMHuiTyGp93qeCWj5NJflxYKmyeQ"
+func generateTestToken() string {
+	hashed, _ := generateToken(uuid.New().String())
+	return hashed
+}
 
 func TestValidateToken(t *testing.T) {
+	token := generateTestToken()
 	uid, err := verifyToken(token)
 	if err != nil {
 		t.Fatal(err)
