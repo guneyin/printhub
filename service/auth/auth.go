@@ -37,7 +37,7 @@ func GetService() *Service {
 	return service
 }
 
-func (s *Service) Register(ctx context.Context, u *model.User) error {
+func (s *Service) RegisterUser(ctx context.Context, u *model.User) error {
 	if u.Role != model.UserRoleClient {
 		return fmt.Errorf("%s user not allowed", u.Role)
 	}
@@ -91,7 +91,7 @@ func (s *Service) CompleteOAuth(ctx context.Context, role model.UserRole, provid
 	return s.createSession("oauth", u)
 }
 
-func (s *Service) BasicAuth(ctx context.Context, role model.UserRole, email, password string) (*model.Session, error) {
+func (s *Service) LoginUser(ctx context.Context, role model.UserRole, email, password string) (*model.Session, error) {
 	u, err := s.userSvc.GetByEmail(ctx, email, role)
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (s *Service) createSession(provider string, u *model.User) (*model.Session,
 	}, nil
 }
 
-func (s *Service) Recover(ctx context.Context, email string, role model.UserRole) {
+func (s *Service) RecoverPassword(ctx context.Context, email string, role model.UserRole) {
 	u, err := s.userSvc.GetByEmail(ctx, email, role)
 	if err != nil {
 		slog.Warn(err.Error())
@@ -135,21 +135,39 @@ func (s *Service) Recover(ctx context.Context, email string, role model.UserRole
 	}
 }
 
-func (s *Service) Validate(ctx context.Context, token string) (*model.User, error) {
-	uuid, err := validateToken(token)
+func (s *Service) VerifyToken(ctx context.Context, token string) (*model.User, error) {
+	uuid, err := verifyToken(token)
 	if err != nil {
 		return nil, err
 	}
+
 	return s.userSvc.GetByUUID(ctx, uuid)
 }
 
 func (s *Service) ChangePassword(ctx context.Context, token, password string) error {
-	uuid, err := validateToken(token)
+	uuid, err := verifyToken(token)
 	if err != nil {
 		return err
 	}
 	u := &model.User{Password: password}
 	return s.userSvc.Update(ctx, uuid, u)
+}
+
+func (s *Service) ValidateUser(ctx context.Context, token string) (*model.User, error) {
+	u, err := s.VerifyToken(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	if u.IsActivated() {
+		return nil, errors.New("user is already validated")
+	}
+
+	err = s.userSvc.Validate(ctx, u)
+	if err != nil {
+		return nil, err
+	}
+	return u, nil
 }
 
 func generateToken(uid string) (string, error) {
@@ -158,7 +176,7 @@ func generateToken(uid string) (string, error) {
 	return utils.Encrypt(tokenStr, []byte(cfg.AuthSecret))
 }
 
-func validateToken(hash string) (string, error) {
+func verifyToken(hash string) (string, error) {
 	cfg := market.Get().Config
 	token, err := utils.Decrypt(hash, []byte(cfg.AuthSecret))
 	if err != nil {

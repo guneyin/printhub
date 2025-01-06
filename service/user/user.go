@@ -72,7 +72,7 @@ func (s *Service) GetByEmail(ctx context.Context, email string, role model.UserR
 		return nil, err
 	}
 
-	if u.Active == false {
+	if !u.IsActivated() {
 		return nil, errors.New("user is not active")
 	}
 	return u, nil
@@ -95,4 +95,9 @@ func (s *Service) initTenantUser(ctx context.Context, found, u *model.User) (*mo
 	}
 	err := s.repo.Create(ctx, u)
 	return u, err
+}
+
+func (s *Service) Validate(ctx context.Context, u *model.User) error {
+	u.Active = true
+	return s.repo.Update(ctx, u)
 }

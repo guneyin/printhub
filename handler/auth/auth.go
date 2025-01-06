@@ -39,15 +39,15 @@ func (h *Handler) name() string {
 func (h *Handler) setRoutes(r fiber.Router) {
 	g := r.Group(h.name())
 
-	g.Post("/register", h.Register)
-	g.Post("/login", h.Login)
+	g.Post("/register", h.RegisterUser)
+	g.Post("/login", h.LoginUser)
 	g.Get("/oauth/:provider", h.OAuthInit)
 	g.Get("/oauth/:provider/complete", h.OAuthComplete)
-	g.Get("/logout", h.Logout)
-	g.Get("/recover", h.Recover)
-	g.Get("/validate", h.Validate)
-	g.Get("/change", h.Change)
-	//g.Get("/activate", h.Activate)
+	g.Get("/logout", h.LogoutUser)
+	g.Get("/recover", h.RecoverPassword)
+	g.Get("/verify", h.VerifyToken)
+	g.Get("/change", h.ChangePassword)
+	g.Get("/validate", h.ValidateUser)
 }
 
 // Register
@@ -60,7 +60,7 @@ func (h *Handler) setRoutes(r fiber.Router) {
 // @Param tenant body model.AuthUserRequest true "login info"
 // @Failure default {object} mw.HTTPError
 // @Router /auth/register [post]
-func (h *Handler) Register(c *fiber.Ctx) error {
+func (h *Handler) RegisterUser(c *fiber.Ctx) error {
 	role, err := model.NewUserRole(c.Query("role"))
 	if err != nil {
 		return err
@@ -76,7 +76,7 @@ func (h *Handler) Register(c *fiber.Ctx) error {
 		Password: ur.Password,
 	}
 
-	err = h.svc.Register(c.Context(), u)
+	err = h.svc.RegisterUser(c.Context(), u)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (h *Handler) Register(c *fiber.Ctx) error {
 // @Success 200 {object} model.Session
 // @Failure default {object} mw.HTTPError
 // @Router /auth/login [post]
-func (h *Handler) Login(c *fiber.Ctx) error {
+func (h *Handler) LoginUser(c *fiber.Ctx) error {
 	role, err := model.NewUserRole(c.Query("role"))
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		return err
 	}
 
-	sess, err := h.svc.BasicAuth(c.Context(), role, ur.Email, ur.Password)
+	sess, err := h.svc.LoginUser(c.Context(), role, ur.Email, ur.Password)
 	if err != nil {
 		return err
 	}
@@ -178,11 +178,11 @@ func (h *Handler) OAuthComplete(c *fiber.Ctx) error {
 // @Success 200 {object} model.Session
 // @Failure default {object} mw.HTTPError
 // @Router /auth/logout [post]
-func (h *Handler) Logout(c *fiber.Ctx) error {
+func (h *Handler) LogoutUser(c *fiber.Ctx) error {
 	return mw.InvalidateSession(c)
 }
 
-func (h *Handler) Recover(c *fiber.Ctx) error {
+func (h *Handler) RecoverPassword(c *fiber.Ctx) error {
 	role, err := model.NewUserRole(c.Query("role"))
 	if err != nil {
 		return err
@@ -190,23 +190,32 @@ func (h *Handler) Recover(c *fiber.Ctx) error {
 
 	email := c.Query("email")
 
-	h.svc.Recover(c.Context(), email, role)
+	h.svc.RecoverPassword(c.Context(), email, role)
 
 	return c.SendStatus(fiber.StatusOK)
 }
 
-func (h *Handler) Validate(c *fiber.Ctx) error {
+func (h *Handler) VerifyToken(c *fiber.Ctx) error {
 	token := c.Query("token")
-	u, err := h.svc.Validate(c.Context(), token)
+	u, err := h.svc.VerifyToken(c.Context(), token)
 	if err != nil {
 		return err
 	}
 	return c.JSON(u.Safe())
 }
 
-func (h *Handler) Change(c *fiber.Ctx) error {
+func (h *Handler) ChangePassword(c *fiber.Ctx) error {
 	token := c.Query("token")
 	password := c.Query("password")
 
 	return h.svc.ChangePassword(c.Context(), token, password)
+}
+
+func (h *Handler) ValidateUser(c *fiber.Ctx) error {
+	token := c.Query("token")
+	u, err := h.svc.ValidateUser(c.Context(), token)
+	if err != nil {
+		return err
+	}
+	return c.JSON(u.Safe())
 }

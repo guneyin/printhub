@@ -26,7 +26,7 @@ func TestToken(t *testing.T) {
 	}
 	t.Log("hashed:", hashed)
 
-	verified, err := validateToken(hashed)
+	verified, err := verifyToken(hashed)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,13 +43,13 @@ func TestForgotPassword(t *testing.T) {
 	role := model.UserRoleAdmin
 
 	svc := newService()
-	svc.Recover(ctx, email, role)
+	svc.RecoverPassword(ctx, email, role)
 }
 
 func TestValidate(t *testing.T) {
 	ctx := context.Background()
 	svc := newService()
-	u, err := svc.Validate(ctx, token)
+	u, err := svc.ValidateUser(ctx, token)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestValidate(t *testing.T) {
 const token = "xDA9HiSLJ6kqGHqZZhJn3k4BONLUIniAJq1Q4SdZmVWAiFqy4RssHST1CI5tk2oFtTMqmirXDMHuiTyGp93qeCWj5NJflxYKmyeQ"
 
 func TestValidateToken(t *testing.T) {
-	uid, err := validateToken(token)
+	uid, err := verifyToken(token)
 	if err != nil {
 		t.Fatal(err)
 	}
