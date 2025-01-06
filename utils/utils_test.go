@@ -1,13 +1,21 @@
 package utils
 
-import "testing"
-
-var (
-	secret    = "N1PCdw3M2B1TfJhoaY2mL736p2vCUc47"
-	plainText = "plain-text"
+import (
+	"crypto/rand"
+	"encoding/base64"
+	"testing"
 )
 
+var plainText = "plain-text"
+
+func genSecret() string {
+	key := make([]byte, 16)
+	_, _ = rand.Read(key)
+	return base64.StdEncoding.EncodeToString(key)
+}
+
 func TestAES(t *testing.T) {
+	secret := genSecret()
 	enc, err := Encrypt(plainText, []byte(secret))
 	if err != nil {
 		t.Fatal(err)
