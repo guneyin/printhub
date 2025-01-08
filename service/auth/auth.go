@@ -46,19 +46,19 @@ func (s *Service) RegisterUser(ctx context.Context, u *model.User) error {
 		return err
 	}
 
-	err := s.userSvc.Create(ctx, u)
+	created, err := s.userSvc.Create(ctx, u)
 	if err != nil {
 		return err
 	}
 
-	token, err := generateToken(u.UUID)
+	token, err := generateToken(created.UUID)
 	if err != nil {
 		slog.Warn(err.Error())
 		return nil
 	}
 
 	rp := mail.NewVerifyUserEmail(token)
-	err = rp.Send(u.Email, "Hesabınızı doğrulayın")
+	err = rp.Send(created.Email, "Hesabınızı doğrulayın")
 	if err != nil {
 		slog.Warn(err.Error())
 	}
@@ -86,9 +86,14 @@ func (s *Service) CompleteOAuth(ctx context.Context, role model.UserRole, provid
 		return nil, err
 	}
 
-	u := oauth.ToUser()
-	u.Role = role
-	return s.createSession("oauth", u)
+	u := oauth.ToUser(role)
+
+	created, err := s.userSvc.InitUser(ctx, u)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.createSession("oauth", created)
 }
 
 func (s *Service) LoginUser(ctx context.Context, role model.UserRole, email, password string) (*model.Session, error) {
@@ -149,8 +154,10 @@ func (s *Service) ChangePassword(ctx context.Context, token, password string) er
 	if err != nil {
 		return err
 	}
+
 	u := &model.User{Password: password}
-	return s.userSvc.Update(ctx, uuid, u)
+	_, err = s.userSvc.Update(ctx, uuid, u)
+	return err
 }
 
 func (s *Service) ValidateUser(ctx context.Context, token string) (*model.User, error) {

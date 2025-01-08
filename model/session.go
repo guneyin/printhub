@@ -2,6 +2,8 @@ package model
 
 import (
 	"encoding/gob"
+	"github.com/google/uuid"
+	"slices"
 )
 
 func init() {
@@ -14,7 +16,14 @@ type Session struct {
 	User     User   `json:"user"`
 }
 
-// todo: s.user.role boş
-func (s *Session) IsValid(role UserRole) bool {
-	return s.User.Role == role
+func (s *Session) IsAuthorized(role ...UserRole) bool {
+	_, err := uuid.Parse(s.ID)
+	if err != nil {
+		return false
+	}
+
+	if role == nil {
+		return true
+	}
+	return slices.Contains(role, s.User.Role)
 }

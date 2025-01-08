@@ -32,7 +32,7 @@ func (v VerifyUser) Generate() (hermes.Email, error) {
 					Button: hermes.Button{
 						Color: "#DC4D2F",
 						Text:  "Hesabımı doğrula",
-						Link:  cfg.AppURL + "/register?token=" + v.Token,
+						Link:  cfg.AppURL + "/validate?token=" + v.Token,
 					},
 				},
 			},

@@ -34,13 +34,8 @@ func newGoogleProvider() *googleProvider {
 func (gp *googleProvider) config() *oauth2.Config {
 	cfg := market.Get().Config
 
-	//u := cbUrl
-	//if cbUrl == "" {
-	//u := fmt.Sprintf("%s/api/auth/google/callback", cfg.ApiBaseUrl)
-	//}
-	u := "http://localhost:5173/oauth/google/callback"
 	return &oauth2.Config{
-		RedirectURL:  u,
+		RedirectURL:  fmt.Sprintf("%s/oauth/google/callback", cfg.AppURL),
 		ClientID:     cfg.GoogleClientId,
 		ClientSecret: cfg.GoogleClientSecret,
 		Scopes:       googleAuthScopes,
@@ -60,16 +55,10 @@ func (gp *googleProvider) InitOAuth(role model.UserRole, cbUrl string, force boo
 	//config.RedirectURL = cbUrl
 
 	u := config.AuthCodeURL(string(role), opts...)
-	//u := config.AuthCodeURL("", opts...)
 	au, err := url.Parse(u)
 	if err != nil {
 		return "", err
 	}
-	//query := au.Query()
-	//query.Set("role", string(role))
-	//au.RawQuery = query.Encode()
-
-	fmt.Println(au.String())
 
 	return au.String(), nil
 }

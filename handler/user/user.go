@@ -32,7 +32,7 @@ func (h *Handler) name() string {
 }
 
 func (h *Handler) setRoutes(r fiber.Router) {
-	g := r.Group(h.name()).Use(mw.AdminGuard)
+	g := r.Group(h.name()).Use(mw.Guard)
 
 	g.Get("/me", h.me)
 }

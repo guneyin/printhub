@@ -69,8 +69,29 @@ type HTTPError struct {
 	Error string `json:"error"`
 }
 
+func Guard(c *fiber.Ctx) error {
+	if Sess(c).IsAuthorized() {
+		return c.Next()
+	}
+	return fiber.ErrUnauthorized
+}
+
 func AdminGuard(c *fiber.Ctx) error {
-	if Sess(c).IsValid(model.UserRoleAdmin) {
+	if Sess(c).IsAuthorized(model.UserRoleAdmin) {
+		return c.Next()
+	}
+	return fiber.ErrUnauthorized
+}
+
+func TenantGuard(c *fiber.Ctx) error {
+	if Sess(c).IsAuthorized(model.UserRoleTenant) {
+		return c.Next()
+	}
+	return fiber.ErrUnauthorized
+}
+
+func ClientGuard(c *fiber.Ctx) error {
+	if Sess(c).IsAuthorized(model.UserRoleClient) {
 		return c.Next()
 	}
 	return fiber.ErrUnauthorized

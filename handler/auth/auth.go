@@ -50,7 +50,7 @@ func (h *Handler) setRoutes(r fiber.Router) {
 	g.Get("/validate", h.ValidateUser)
 }
 
-// Register
+// RegisterUser Register
 // @Summary Register client user.
 // @Description Register client user.
 // @Tags Auth Register
@@ -84,7 +84,7 @@ func (h *Handler) RegisterUser(c *fiber.Ctx) error {
 	return c.JSON(u.Safe())
 }
 
-// Login
+// LoginUser Login
 // @Summary login.
 // @Description login.
 // @Tags login
@@ -150,7 +150,6 @@ func (h *Handler) OAuthInit(c *fiber.Ctx) error {
 }
 
 func (h *Handler) OAuthComplete(c *fiber.Ctx) error {
-	//uri := c.Request().URI().String()
 	role, err := model.NewUserRole(c.Query("role"))
 	if err != nil {
 		return err
@@ -169,7 +168,7 @@ func (h *Handler) OAuthComplete(c *fiber.Ctx) error {
 	return c.JSON(sess)
 }
 
-// Logout
+// LogoutUser Logout
 // @Summary Logout.
 // @Description Logout.
 // @Tags Logout
