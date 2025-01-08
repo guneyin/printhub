@@ -11,11 +11,25 @@ import (
 )
 
 type Config struct {
+	AppName string `env:"PH_APP_NAME"`
+	AppURL  string `env:"PH_APP_URL"`
+
 	ApiBaseUrl string `env:"PH_API_BASE_URL"`
 	ApiPort    string `env:"PH_API_PORT"`
 
+	MailEnabled bool `env:"PH_MAIL_ENABLED"`
+
 	JWTSecret string `env:"PH_JWT_SECRET"`
 	JWTExp    string `env:"PH_JWT_EXP"`
+
+	AuthSecret string `env:"PH_AUTH_SECRET"`
+
+	EmailUser       string `env:"PH_EMAIL_USER"`
+	EmailPassword   string `env:"PH_EMAIL_PASSWORD"`
+	EmailSmtpServer string `env:"PH_EMAIL_SMTP_SERVER"`
+	EmailSmtpPort   string `env:"PH_EMAIL_SMTP_PORT"`
+	EmailSender     string `env:"PH_EMAIL_SENDER"`
+	EmailIdentity   string `env:"PH_EMAIL_IDENTITY"`
 
 	DbPath string `env:"PH_DB_PATH"`
 	DbHost string `env:"PH_DB_HOST"`
@@ -29,17 +43,31 @@ type Config struct {
 }
 
 func New() (*Config, error) {
-	err := godotenv.Load("test.env")
+	err := godotenv.Load(".env")
 	if err != nil {
 		slog.Warn("error loading .env file")
 	}
 
 	cfg := &Config{
+		AppName: os.Getenv("PH_APP_NAME"),
+		AppURL:  os.Getenv("PH_APP_URL"),
+
 		ApiBaseUrl: os.Getenv("PH_API_BASE_URL"),
 		ApiPort:    os.Getenv("PH_API_PORT"),
 
+		MailEnabled: os.Getenv("PH_MAIL_ENABLED") == "true",
+
 		JWTSecret: os.Getenv("PH_JWT_SECRET"),
 		JWTExp:    os.Getenv("PH_JWT_EXP"),
+
+		AuthSecret: os.Getenv("PH_AUTH_SECRET"),
+
+		EmailUser:       os.Getenv("PH_EMAIL_USER"),
+		EmailPassword:   os.Getenv("PH_EMAIL_PASSWORD"),
+		EmailSmtpServer: os.Getenv("PH_EMAIL_SMTP_SERVER"),
+		EmailSmtpPort:   os.Getenv("PH_EMAIL_SMTP_PORT"),
+		EmailSender:     os.Getenv("PH_EMAIL_SENDER"),
+		EmailIdentity:   os.Getenv("PH_EMAIL_IDENTITY"),
 
 		DbPath: os.Getenv("PH_DB_PATH"),
 		DbHost: "",

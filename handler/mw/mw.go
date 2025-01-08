@@ -20,20 +20,19 @@ var (
 func store() *session.Store {
 	onceStore.Do(func() {
 		ss = session.New(session.Config{
-			Expiration: time.Hour * 72,
+			Expiration: time.Hour * 24 * 30,
 			Storage: sqlite3.New(sqlite3.Config{
 				Database: market.Get().Config.DbPath,
 				Table:    "sessions",
 			}),
 			KeyLookup:         "cookie:session_id",
 			CookieDomain:      "",
-			CookiePath:        "",
+			CookiePath:        "/",
 			CookieSecure:      true,
 			CookieHTTPOnly:    true,
 			CookieSameSite:    "Strict",
 			CookieSessionOnly: false,
 			KeyGenerator:      utils.UUIDv4,
-			CookieName:        "",
 		})
 	})
 	return ss
@@ -48,64 +47,61 @@ func getSession(c *fiber.Ctx) *session.Session {
 	return s
 }
 
-func AuthorizeSession(c *fiber.Ctx, sess *model.Session) {
+func AuthorizeSession(c *fiber.Ctx, sess *model.Session) error {
 	s := getSession(c)
+	sess.ID = s.ID()
 	s.Set("session", sess)
-	_ = s.Save()
-
-	token, err := genJWT(sess)
+	err := s.Save()
 	if err != nil {
 		slog.ErrorContext(c.Context(), "AuthorizeSession", "error:", err.Error())
-		return
+		return err
 	}
 
-	cookie := &fiber.Cookie{
-		Name:        "auth_token",
-		Value:       token,
-		Path:        "",
-		Domain:      "",
-		MaxAge:      0,
-		Expires:     sess.ExpiresAt,
-		Secure:      true,
-		HTTPOnly:    true,
-		SameSite:    "Strict",
-		SessionOnly: false,
-	}
-	c.Cookie(cookie)
+	return nil
+}
+
+func InvalidateSession(c *fiber.Ctx) error {
+	s := getSession(c)
+	return s.Destroy()
 }
 
 type HTTPError struct {
 	Error string `json:"error"`
 }
 
-func AdminGuard(c *fiber.Ctx) error {
-	c.Locals("role", model.UserRoleAdmin)
-	return protected(c)
-}
-
-func TenantGuard(c *fiber.Ctx) error {
-	c.Locals("role", model.UserRoleTenant)
-	return protected(c)
-}
-
-func ClientGuard(c *fiber.Ctx) error {
-	c.Locals("role", model.UserRoleClient)
-	return protected(c)
-}
-
-func protected(c *fiber.Ctx) error {
-	role, _ := c.Locals("role").(model.UserRole)
-
-	if Sess(c).IsValid(role) {
+func Guard(c *fiber.Ctx) error {
+	if Sess(c).IsAuthorized() {
 		return c.Next()
 	}
 	return fiber.ErrUnauthorized
+}
 
+func AdminGuard(c *fiber.Ctx) error {
+	if Sess(c).IsAuthorized(model.UserRoleAdmin) {
+		return c.Next()
+	}
+	return fiber.ErrUnauthorized
+}
+
+func TenantGuard(c *fiber.Ctx) error {
+	if Sess(c).IsAuthorized(model.UserRoleTenant) {
+		return c.Next()
+	}
+	return fiber.ErrUnauthorized
+}
+
+func ClientGuard(c *fiber.Ctx) error {
+	if Sess(c).IsAuthorized(model.UserRoleClient) {
+		return c.Next()
+	}
+	return fiber.ErrUnauthorized
 }
 
 func Sess(c *fiber.Ctx) *model.Session {
-	if s := getSession(c).Get("session"); s != nil {
-		return s.(*model.Session)
+	s := getSession(c)
+	sess := s.Get("session")
+	if sess != nil {
+		return sess.(*model.Session)
 	}
 	return &model.Session{}
 }

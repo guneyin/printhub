@@ -4,16 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/guneyin/printhub/model"
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"net/http"
+	"os"
 	"testing"
 )
 
+func init() {
+	_ = godotenv.Load(".env")
+}
+
 func TestTenantAuthRoute(t *testing.T) {
 	googleConfigData := map[string]string{
-		"apiKey":       "AIzaSyBE_hb2H1ax1SCzXFPrbJ5ouIz87mqc_5c",
-		"clientId":     "1070061319069-aoa9jikah08q3a7gjoqtv5d092du24rc.apps.googleusercontent.com",
-		"clientSecret": "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",
+		"apiKey":       os.Getenv("PH_GOOGLE_APIKEY"),
+		"clientId":     os.Getenv("PH_GOOGLE_CLIENT_ID"),
+		"clientSecret": os.Getenv("PH_GOOGLE_CLIENT_SECRET"),
 		"callBackUrl":  "http://localhost:8080/api/tenant/auth/callback",
 	}
 	googleConfig, _ := json.Marshal(googleConfigData)

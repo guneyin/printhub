@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/contrib/swagger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/guneyin/printhub/handler/mw"
 	"os"
@@ -41,6 +42,9 @@ func NewServer(appName string) *fiber.App {
 
 	app.Use(cors.New())
 	app.Use(recover.New())
+	app.Use(logger.New(logger.Config{
+		Format: "${pid} ${locals:requestid} ${status} - ${method} ${path}​\n",
+	}))
 
 	if _, err := os.Stat("./docs/swagger.json"); err == nil {
 		app.Use(swagger.New(swagger.Config{

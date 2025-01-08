@@ -2,7 +2,8 @@ package model
 
 import (
 	"encoding/gob"
-	"time"
+	"github.com/google/uuid"
+	"slices"
 )
 
 func init() {
@@ -10,15 +11,19 @@ func init() {
 }
 
 type Session struct {
-	Provider     string    `json:"provider"`
-	AccessToken  string    `json:"accessToken"`
-	RefreshToken string    `json:"refreshToken"`
-	ExpiresAt    time.Time `json:"expiresAt"`
-	UserId       string    `json:"userId"`
-	UserEmail    string    `json:"userEmail"`
-	UserRole     UserRole  `json:"userRole"`
+	ID       string `json:"id"`
+	Provider string `json:"provider"`
+	User     User   `json:"user"`
 }
 
-func (s *Session) IsValid(role UserRole) bool {
-	return s.UserRole == role
+func (s *Session) IsAuthorized(role ...UserRole) bool {
+	_, err := uuid.Parse(s.ID)
+	if err != nil {
+		return false
+	}
+
+	if role == nil {
+		return true
+	}
+	return slices.Contains(role, s.User.Role)
 }

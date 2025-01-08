@@ -39,23 +39,99 @@ func (h *Handler) name() string {
 func (h *Handler) setRoutes(r fiber.Router) {
 	g := r.Group(h.name())
 
-	g.Get("/oauth/:provider", h.InitOAuth)
-	g.Get("/oauth/:provider/CompleteOAuth", h.CompleteOAuth)
-	g.Post("/login", h.BasicAuth)
+	g.Post("/register", h.RegisterUser)
+	g.Post("/login", h.LoginUser)
+	g.Get("/oauth/:provider", h.OAuthInit)
+	g.Get("/oauth/:provider/complete", h.OAuthComplete)
+	g.Get("/logout", h.LogoutUser)
+	g.Get("/recover", h.RecoverPassword)
+	g.Get("/verify", h.VerifyToken)
+	g.Get("/change", h.ChangePassword)
+	g.Get("/validate", h.ValidateUser)
 }
 
-// InitOAuth Init
+// RegisterUser Register
+// @Summary Register client user.
+// @Description Register client user.
+// @Tags Auth Register
+// @Accept json
+// @Produce json
+// @Param role query string true "role" Enums(admin, tenant, client)
+// @Param tenant body model.AuthUserRequest true "login info"
+// @Failure default {object} mw.HTTPError
+// @Router /auth/register [post]
+func (h *Handler) RegisterUser(c *fiber.Ctx) error {
+	role, err := model.NewUserRole(c.Query("role"))
+	if err != nil {
+		return err
+	}
+
+	ur, err := model.NewAuthUserRequest(c.Body())
+	if err != nil {
+		return err
+	}
+	u := &model.User{
+		Role:     role,
+		Email:    ur.Email,
+		Password: ur.Password,
+	}
+
+	err = h.svc.RegisterUser(c.Context(), u)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(u.Safe())
+}
+
+// LoginUser Login
+// @Summary login.
+// @Description login.
+// @Tags login
+// @Accept json
+// @Produce json
+// @Param role query string true "role" Enums(admin, tenant, client)
+// @Param tenant body model.AuthUserRequest true "login info"
+// @Success 200 {object} model.Session
+// @Failure default {object} mw.HTTPError
+// @Router /auth/login [post]
+func (h *Handler) LoginUser(c *fiber.Ctx) error {
+	role, err := model.NewUserRole(c.Query("role"))
+	if err != nil {
+		return err
+	}
+
+	ur, err := model.NewAuthUserRequest(c.Body())
+	if err != nil {
+		return err
+	}
+
+	sess, err := h.svc.LoginUser(c.Context(), role, ur.Email, ur.Password)
+	if err != nil {
+		return err
+	}
+
+	err = mw.AuthorizeSession(c, sess)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(sess)
+}
+
+// OAuthInit Init
 // @Summary Init auth.
 // @Description Start OAuth2 authorization.
-// @Tags Auth InitOAuth
+// @Tags Auth OAuthInit
 // @Accept json
 // @Produce json
 // @Param provider path string true "provider"
 // @Param role query string true "role"
+// @Param callback query string true "callback url"
 // @Param force query bool false "force"
 // @Failure default {object} mw.HTTPError
 // @Router /auth/oauth/{provider} [get]
-func (h *Handler) InitOAuth(c *fiber.Ctx) error {
+func (h *Handler) OAuthInit(c *fiber.Ctx) error {
 	role, err := model.NewUserRole(c.Query("role"))
 	if err != nil {
 		return err
@@ -64,6 +140,7 @@ func (h *Handler) InitOAuth(c *fiber.Ctx) error {
 	u, err := h.svc.InitOAuth(
 		c.Params("provider"),
 		role,
+		c.Query("callback"),
 		c.QueryBool("force"))
 	if err != nil {
 		return err
@@ -72,8 +149,8 @@ func (h *Handler) InitOAuth(c *fiber.Ctx) error {
 	return c.Redirect(u, http.StatusFound)
 }
 
-func (h *Handler) CompleteOAuth(c *fiber.Ctx) error {
-	role, err := model.NewUserRole(c.Query("state"))
+func (h *Handler) OAuthComplete(c *fiber.Ctx) error {
+	role, err := model.NewUserRole(c.Query("role"))
 	if err != nil {
 		return err
 	}
@@ -83,38 +160,61 @@ func (h *Handler) CompleteOAuth(c *fiber.Ctx) error {
 		return err
 	}
 
-	mw.AuthorizeSession(c, sess)
+	err = mw.AuthorizeSession(c, sess)
+	if err != nil {
+		return err
+	}
 
-	return c.SendStatus(fiber.StatusOK)
+	return c.JSON(sess)
 }
 
-// BasicAuth
-// @Summary login.
-// @Description login.
-// @Tags login
+// LogoutUser Logout
+// @Summary Logout.
+// @Description Logout.
+// @Tags Logout
 // @Accept json
 // @Produce json
-// @Param role query string true "role" Enums(admin, tenant, client)
-// @Param tenant body model.AuthLoginRequest true "login info"
+// @Success 200 {object} model.Session
 // @Failure default {object} mw.HTTPError
-// @Router /auth/login [post]
-func (h *Handler) BasicAuth(c *fiber.Ctx) error {
+// @Router /auth/logout [post]
+func (h *Handler) LogoutUser(c *fiber.Ctx) error {
+	return mw.InvalidateSession(c)
+}
+
+func (h *Handler) RecoverPassword(c *fiber.Ctx) error {
 	role, err := model.NewUserRole(c.Query("role"))
 	if err != nil {
 		return err
 	}
 
-	req, err := model.NewAuthLoginRequest(c.Body())
-	if err != nil {
-		return err
-	}
+	email := c.Query("email")
 
-	sess, err := h.svc.BasicAuth(c.Context(), role, req.Email, req.Password)
-	if err != nil {
-		return err
-	}
-
-	mw.AuthorizeSession(c, sess)
+	h.svc.RecoverPassword(c.Context(), email, role)
 
 	return c.SendStatus(fiber.StatusOK)
+}
+
+func (h *Handler) VerifyToken(c *fiber.Ctx) error {
+	token := c.Query("token")
+	u, err := h.svc.VerifyToken(c.Context(), token)
+	if err != nil {
+		return err
+	}
+	return c.JSON(u.Safe())
+}
+
+func (h *Handler) ChangePassword(c *fiber.Ctx) error {
+	token := c.Query("token")
+	password := c.Query("password")
+
+	return h.svc.ChangePassword(c.Context(), token, password)
+}
+
+func (h *Handler) ValidateUser(c *fiber.Ctx) error {
+	token := c.Query("token")
+	u, err := h.svc.ValidateUser(c.Context(), token)
+	if err != nil {
+		return err
+	}
+	return c.JSON(u.Safe())
 }

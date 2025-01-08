@@ -25,6 +25,22 @@ func (r *Repo) migrate() {
 	}
 }
 
+func (r *Repo) Create(ctx context.Context, t *model.Tenant) error {
+	ctx = context.WithoutCancel(ctx)
+	tx := r.db.WithContext(ctx)
+
+	return tx.Create(t).Error
+}
+
+func (r *Repo) GetTenantList(ctx context.Context) (model.TenantList, error) {
+	ctx = context.WithoutCancel(ctx)
+	tx := r.db.WithContext(ctx)
+
+	list := model.TenantList{}
+	err := tx.Find(&list).Error
+	return list, err
+}
+
 func (r *Repo) GetByUUID(ctx context.Context, uuid string) (*model.Tenant, error) {
 	ctx = context.WithoutCancel(ctx)
 	tx := r.db.WithContext(ctx)
@@ -32,13 +48,6 @@ func (r *Repo) GetByUUID(ctx context.Context, uuid string) (*model.Tenant, error
 	tenant := &model.Tenant{UUID: uuid}
 	err := tx.First(tenant).Error
 	return tenant, err
-}
-
-func (r *Repo) Create(ctx context.Context, t *model.Tenant) error {
-	ctx = context.WithoutCancel(ctx)
-	tx := r.db.WithContext(ctx)
-
-	return tx.Create(t).Error
 }
 
 func (r *Repo) AddUser(ctx context.Context, t *model.Tenant, u *model.User) error {

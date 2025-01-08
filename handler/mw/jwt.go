@@ -22,9 +22,9 @@ func genJWT(sess *model.Session) (string, error) {
 	exp, _ := strconv.Atoi(cfg.JWTExp)
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"exp":       time.Now().Add(time.Hour * 24 * time.Duration(exp)).Unix(),
-		"user_id":   sess.UserId,
-		"user_name": sess.UserEmail,
-		"user_role": sess.UserRole,
+		"user_id":   sess.User.UUID,
+		"user_name": sess.User.Email,
+		"user_role": sess.User.Role,
 	})
 
 	token, err := t.SignedString([]byte(cfg.JWTSecret))

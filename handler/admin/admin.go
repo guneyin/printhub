@@ -2,6 +2,7 @@ package admin
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/guneyin/printhub/handler/mw"
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/service/admin"
 	"sync"
@@ -32,7 +33,7 @@ func (h *Handler) name() string {
 }
 
 func (h *Handler) setRoutes(r fiber.Router) {
-	g := r.Group(h.name())
+	g := r.Group(h.name()).Use(mw.AdminGuard)
 
 	tenant := g.Group("/tenant")
 	tenant.Post("/", h.tenantCreate)
