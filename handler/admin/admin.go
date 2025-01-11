@@ -36,6 +36,8 @@ func (h *Handler) setRoutes(r fiber.Router) {
 	g := r.Group(h.name()).Use(mw.AdminGuard)
 
 	tenant := g.Group("/tenant")
+	tenant.Get("/list", h.getTenantList)
+	tenant.Get("/", h.getTenantById)
 	tenant.Post("/", h.tenantCreate)
 	tenant.Post("/user", h.tenantUserCreate)
 }
@@ -59,7 +61,23 @@ func (h *Handler) boostrap(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-// TenantCreate
+func (h *Handler) getTenantList(c *fiber.Ctx) error {
+	list, err := h.svc.GetTenantList(c.Context())
+	if err != nil {
+		return err
+	}
+	return c.JSON(list)
+}
+
+func (h *Handler) getTenantById(c *fiber.Ctx) error {
+	tenant, err := h.svc.GetTenantById(c.Context(), c.Query("filter"))
+	if err != nil {
+		return err
+	}
+	return c.JSON(tenant)
+}
+
+// CreateTenant
 // @Summary tenant create.
 // @Description Create a new tenant.
 // @Tags tenant create
@@ -69,7 +87,9 @@ func (h *Handler) boostrap(c *fiber.Ctx) error {
 // @Failure default {object} mw.HTTPError
 // @Router /admin/tenant [post]
 func (h *Handler) tenantCreate(c *fiber.Ctx) error {
-	tenant, err := model.NewTenant(c.Body())
+	body := c.Body()
+	bodyStr := string(body)
+	tenant, err := model.NewTenant([]byte(bodyStr))
 	if err != nil {
 		return err
 	}

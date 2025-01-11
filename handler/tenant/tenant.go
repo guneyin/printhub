@@ -2,7 +2,6 @@ package tenant
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/guneyin/printhub/handler/mw"
 	"github.com/guneyin/printhub/service/tenant"
 	"sync"
 )
@@ -32,17 +31,5 @@ func (h *Handler) name() string {
 }
 
 func (h *Handler) setRoutes(r fiber.Router) {
-	g := r.Group(h.name()).Use(mw.AdminGuard)
-
-	g.Get("/", h.getTenantList)
-	//g.Get("/:id", h.getTenant)
-}
-
-func (h *Handler) getTenantList(c *fiber.Ctx) error {
-	list, err := h.svc.GetTenantList(c.Context())
-	if err != nil {
-		return err
-	}
-
-	return c.JSON(list)
+	//g := r.Group(h.name()).Use(mw.AdminGuard)
 }

@@ -80,25 +80,24 @@ func (s *Service) GetCount(ctx context.Context) (int64, error) {
 	return s.repo.GetCount(ctx)
 }
 
+func (s *Service) GetTenantList(ctx context.Context) (model.TenantList, error) {
+	return s.repo.GetTenantList(ctx)
+}
+
+func (s *Service) GetTenantById(ctx context.Context, filter string) (*model.Tenant, error) {
+	qf := utils.NewQueryFilter(filter)
+	id, ok := qf.Get("id")
+	if !ok {
+		return nil, errors.New("filter error")
+	}
+
+	return s.repo.GetTenantById(ctx, id.String())
+}
+
 func (s *Service) TenantCreate(ctx context.Context, t *model.Tenant) error {
-	err := s.tenant.Create(ctx, t)
+	_, err := s.repo.CreateTenant(ctx, t)
 	if err != nil {
 		return err
-	}
-
-	u := &model.User{
-		Role:  model.UserRoleTenant,
-		Email: t.Email,
-	}
-
-	_, err = s.userSvc.InitUser(ctx, u)
-	if err != nil {
-		return errors.New("tenant created but user create failed")
-	}
-
-	err = s.tenant.AddUser(ctx, t, u)
-	if err != nil {
-		return errors.New("tenant created but add user failed")
 	}
 
 	return nil

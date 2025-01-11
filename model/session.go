@@ -25,5 +25,6 @@ func (s *Session) IsAuthorized(role ...UserRole) bool {
 	if role == nil {
 		return true
 	}
+
 	return slices.Contains(role, s.User.Role)
 }
