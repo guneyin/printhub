@@ -36,7 +36,7 @@ func TestService_TenantCreate(t *testing.T) {
 	ctx := context.Background()
 	Convey("TestService_TenantCreate", t, func() {
 		created := &model.Tenant{Email: tenantEmail, Name: tenantName}
-		err := svc.TenantCreate(ctx, created)
+		err := svc.SaveTenant(ctx, created)
 		So(err, ShouldBeNil)
 		So(created.UUID, ShouldNotBeEmpty)
 

@@ -46,9 +46,9 @@ func (r *Repo) GetTenantById(ctx context.Context, id string) (*model.Tenant, err
 	return tenant, nil
 }
 
-func (r *Repo) CreateTenant(ctx context.Context, t *model.Tenant) (*model.Tenant, error) {
+func (r *Repo) SaveTenant(ctx context.Context, t *model.Tenant) (*model.Tenant, error) {
 	ctx = context.WithoutCancel(ctx)
-	tx := r.db.WithContext(ctx).Create(t)
+	tx := r.db.WithContext(ctx).Save(t)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}

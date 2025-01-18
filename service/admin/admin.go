@@ -94,8 +94,8 @@ func (s *Service) GetTenantById(ctx context.Context, filter string) (*model.Tena
 	return s.repo.GetTenantById(ctx, id.String())
 }
 
-func (s *Service) TenantCreate(ctx context.Context, t *model.Tenant) error {
-	_, err := s.repo.CreateTenant(ctx, t)
+func (s *Service) SaveTenant(ctx context.Context, t *model.Tenant) error {
+	_, err := s.repo.SaveTenant(ctx, t)
 	if err != nil {
 		return err
 	}
