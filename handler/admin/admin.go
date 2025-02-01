@@ -36,9 +36,9 @@ func (h *Handler) setRoutes(r fiber.Router) {
 	g := r.Group(h.name()).Use(mw.AdminGuard)
 
 	tenant := g.Group("/tenant")
-	tenant.Get("/list", h.getTenantList)
-	tenant.Get("/", h.getTenantById)
+	tenant.Get("/", h.getTenantList)
 	tenant.Post("/", h.saveTenant)
+	tenant.Get("/id", h.getTenantByID)
 	tenant.Post("/user", h.saveTenantUser)
 }
 
@@ -62,15 +62,23 @@ func (h *Handler) boostrap(c *fiber.Ctx) error {
 }
 
 func (h *Handler) getTenantList(c *fiber.Ctx) error {
-	list, err := h.svc.GetTenantList(c.Context())
+	//tenant, err := h.svc.GetTenantById(c.Context(), c.Query("filter"))
+	filter := new(model.TenantFilter)
+	if err := c.QueryParser(filter); err != nil {
+		return err
+	}
+
+	tenant, err := h.svc.SearchTenant(c.Context(), filter)
 	if err != nil {
 		return err
 	}
-	return c.JSON(list)
+	return c.JSON(tenant)
 }
 
-func (h *Handler) getTenantById(c *fiber.Ctx) error {
-	tenant, err := h.svc.GetTenantById(c.Context(), c.Query("filter"))
+func (h *Handler) getTenantByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	tenant, err := h.svc.GetTenantByID(c.Context(), id)
 	if err != nil {
 		return err
 	}
@@ -87,9 +95,7 @@ func (h *Handler) getTenantById(c *fiber.Ctx) error {
 // @Failure default {object} mw.HTTPError
 // @Router /admin/tenant [post]
 func (h *Handler) saveTenant(c *fiber.Ctx) error {
-	body := c.Body()
-	bodyStr := string(body)
-	tenant, err := model.NewTenant([]byte(bodyStr))
+	tenant, err := model.NewTenant(c.Body())
 	if err != nil {
 		return err
 	}
@@ -104,3 +110,7 @@ func (h *Handler) saveTenant(c *fiber.Ctx) error {
 func (h *Handler) saveTenantUser(c *fiber.Ctx) error {
 	return nil
 }
+
+//func (h *Handler) getTenantUser(c *fiber.Ctx) error {
+//	list, err := h.svc.GetTenantList()
+//}

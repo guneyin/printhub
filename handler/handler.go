@@ -10,11 +10,6 @@ import (
 	"github.com/guneyin/printhub/handler/user"
 )
 
-type IHandler interface {
-	name() string
-	setRoutes()
-}
-
 type Handler struct {
 	router fiber.Router
 }

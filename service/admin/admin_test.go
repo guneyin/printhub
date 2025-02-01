@@ -44,7 +44,7 @@ func TestService_TenantCreate(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(u.UUID, ShouldNotBeEmpty)
 
-		found, err := tenantSvc.GetByUUID(ctx, created.UUID)
+		found, err := tenantSvc.GetByID(ctx, created.UUID)
 		So(err, ShouldBeNil)
 		So(found, ShouldNotBeNil)
 		So(found.UUID, ShouldEqual, created.UUID)

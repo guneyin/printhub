@@ -27,6 +27,12 @@ run:
 build:
 	go build -o ${BINARY_NAME} -ldflags "-X ${LDFLAG_VERSION} -X ${LDFLAG_COMMIT_HASH} -X ${LDFLAG_BUILD_TIMESTAMP}" ${MAIN_FILE}
 
+lint:
+	golangci-lint run
+
+fix:
+	golangci-lint run --fix
+
 clean:
 	go clean
 	rm -f ${BINARY_NAME}

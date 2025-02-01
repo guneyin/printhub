@@ -25,13 +25,41 @@ func (r *Repo) migrate() {
 	}
 }
 
-func (r *Repo) GetByUUID(ctx context.Context, uuid string) (*model.Tenant, error) {
+func (r *Repo) Save(ctx context.Context, t *model.Tenant) (*model.Tenant, error) {
 	ctx = context.WithoutCancel(ctx)
-	tx := r.db.WithContext(ctx)
+	tx := r.db.WithContext(ctx).Save(t)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+	return t, nil
+}
 
-	tenant := &model.Tenant{UUID: uuid}
-	err := tx.First(tenant).Error
-	return tenant, err
+func (r *Repo) Search(ctx context.Context, filter model.QueryFilter) (model.TenantList, error) {
+	ctx = context.WithoutCancel(ctx)
+	tenant := model.TenantList{}
+	q, args := filter.Query()
+	tx := r.db.
+		Debug().
+		WithContext(ctx).Model(&model.Tenant{}).
+		Where(q, args...).
+		Find(&tenant)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+	return tenant, nil
+}
+
+func (r *Repo) GetUserList(ctx context.Context, id string) (model.UserList, error) {
+	ctx = context.WithoutCancel(ctx)
+	userList := model.UserList{}
+	tx := r.db.WithContext(ctx).Model(&model.TenantUser{}).
+		InnerJoins("users").
+		Where("tenant_id = ?", id).Find(&userList)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return userList, nil
 }
 
 func (r *Repo) AddUser(ctx context.Context, t *model.Tenant, u *model.User) error {

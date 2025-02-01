@@ -2,7 +2,6 @@ package admin
 
 import (
 	"context"
-	"errors"
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/repo/admin"
 	"github.com/guneyin/printhub/service/auth"
@@ -20,18 +19,18 @@ var (
 )
 
 type Service struct {
-	repo    *admin.Repo
-	authSvc *auth.Service
-	tenant  *tenant.Service
-	userSvc *user.Service
+	repo   *admin.Repo
+	auth   *auth.Service
+	tenant *tenant.Service
+	user   *user.Service
 }
 
 func newService() *Service {
 	s := &Service{
-		repo:    admin.NewRepo(),
-		authSvc: auth.GetService(),
-		tenant:  tenant.GetService(),
-		userSvc: user.GetService(),
+		repo:   admin.NewRepo(),
+		auth:   auth.GetService(),
+		tenant: tenant.GetService(),
+		user:   user.GetService(),
 	}
 	s.boostrap()
 	return s
@@ -80,25 +79,22 @@ func (s *Service) GetCount(ctx context.Context) (int64, error) {
 	return s.repo.GetCount(ctx)
 }
 
-func (s *Service) GetTenantList(ctx context.Context) (model.TenantList, error) {
-	return s.repo.GetTenantList(ctx)
+func (s *Service) SearchTenant(ctx context.Context, filter model.QueryFilter) (model.TenantList, error) {
+	return s.tenant.Search(ctx, filter)
 }
 
-func (s *Service) GetTenantById(ctx context.Context, filter string) (*model.Tenant, error) {
-	qf := utils.NewQueryFilter(filter)
-	id, ok := qf.Get("id")
-	if !ok {
-		return nil, errors.New("filter error")
+func (s *Service) GetTenantByID(ctx context.Context, id string) (*model.Tenant, error) {
+	filter := new(model.TenantFilter)
+	filter.ID = id
+
+	list, err := s.tenant.Search(ctx, filter)
+	if err != nil {
+		return nil, err
 	}
 
-	return s.repo.GetTenantById(ctx, id.String())
+	return &list[0], nil
 }
 
 func (s *Service) SaveTenant(ctx context.Context, t *model.Tenant) error {
-	_, err := s.repo.SaveTenant(ctx, t)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.tenant.Save(ctx, t)
 }
