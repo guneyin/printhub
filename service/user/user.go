@@ -3,9 +3,10 @@ package user
 import (
 	"context"
 	"errors"
+	"sync"
+
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/repo/user"
-	"sync"
 )
 
 var (
@@ -77,7 +78,8 @@ func (s *Service) GetByEmail(ctx context.Context, email string, role model.UserR
 	return u, nil
 }
 
-func (s *Service) GetByEmailWithoutRestriction(ctx context.Context, email string, role model.UserRole) (*model.User, error) {
+func (s *Service) GetByEmailWithoutRestriction(
+	ctx context.Context, email string, role model.UserRole) (*model.User, error) {
 	return s.repo.GetByEmail(ctx, email, role)
 }
 

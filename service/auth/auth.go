@@ -4,17 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/guneyin/printhub/mail"
 	"github.com/guneyin/printhub/market"
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/service/user"
 	"github.com/guneyin/printhub/utils"
 	"golang.org/x/crypto/bcrypt"
-	"log/slog"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 var (
@@ -53,29 +54,31 @@ func (s *Service) RegisterUser(ctx context.Context, u *model.User) error {
 
 	token, err := generateToken(created.UUID)
 	if err != nil {
-		slog.Warn(err.Error())
+		log.Print(err.Error())
 		return nil
 	}
 
 	rp := mail.NewVerifyUserEmail(token)
 	err = rp.Send(created.Email, "Hesabınızı doğrulayın")
 	if err != nil {
-		slog.Warn(err.Error())
+		log.Print(err.Error())
 	}
 
 	return nil
 }
 
-func (s *Service) InitOAuth(provider string, role model.UserRole, cbUrl string, force bool) (string, error) {
+func (s *Service) InitOAuth(provider string, role model.UserRole, force bool) (string, error) {
 	p, err := NewProvider(provider)
 	if err != nil {
 		return "", err
 	}
 
-	return p.InitOAuth(role, cbUrl, force)
+	return p.InitOAuth(role, force)
 }
 
-func (s *Service) CompleteOAuth(ctx context.Context, role model.UserRole, provider, code string) (*model.Session, error) {
+func (s *Service) CompleteOAuth(
+	ctx context.Context, role model.UserRole, provider, code string,
+) (*model.Session, error) {
 	p, err := NewProvider(provider)
 	if err != nil {
 		return nil, err
@@ -120,7 +123,7 @@ func (s *Service) createSession(provider string, u *model.User) (*model.Session,
 func (s *Service) RecoverPassword(ctx context.Context, email string, role model.UserRole) {
 	u, err := s.userSvc.GetByEmail(ctx, email, role)
 	if err != nil {
-		slog.Warn(err.Error())
+		log.Print(err.Error())
 		return
 	}
 	if !u.IsActivated() {
@@ -129,14 +132,14 @@ func (s *Service) RecoverPassword(ctx context.Context, email string, role model.
 
 	token, err := generateToken(u.UUID)
 	if err != nil {
-		slog.Warn(err.Error())
+		log.Print(err.Error())
 		return
 	}
 
 	rp := mail.NewRecoverPasswordEmail(token)
 	err = rp.Send(email, "Parola Sıfırlama")
 	if err != nil {
-		slog.Warn(err.Error())
+		log.Print(err.Error())
 	}
 }
 

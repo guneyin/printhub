@@ -2,9 +2,10 @@ package config
 
 import (
 	"context"
+	"sync"
+
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/repo/config"
-	"sync"
 )
 
 var (

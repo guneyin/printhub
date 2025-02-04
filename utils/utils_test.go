@@ -1,9 +1,11 @@
-package utils
+package utils_test
 
 import (
 	"crypto/rand"
 	"encoding/base64"
 	"testing"
+
+	"github.com/guneyin/printhub/utils"
 )
 
 var plainText = "plain-text"
@@ -16,12 +18,12 @@ func genSecret() string {
 
 func TestAES(t *testing.T) {
 	secret := genSecret()
-	enc, err := Encrypt(plainText, []byte(secret))
+	enc, err := utils.Encrypt(plainText, []byte(secret))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("enc:", enc)
-	dec, err := Decrypt(enc, []byte(secret))
+	dec, err := utils.Decrypt(enc, []byte(secret))
 	if err != nil {
 		t.Fatal(err)
 	}

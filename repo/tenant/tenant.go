@@ -2,6 +2,7 @@ package tenant
 
 import (
 	"context"
+
 	"github.com/guneyin/printhub/market"
 	"github.com/guneyin/printhub/model"
 	"gorm.io/gorm"
@@ -34,6 +35,12 @@ func (r *Repo) Save(ctx context.Context, t *model.Tenant) (*model.Tenant, error)
 	return t, nil
 }
 
+func (r *Repo) Delete(ctx context.Context, id string) error {
+	ctx = context.WithoutCancel(ctx)
+	tx := r.db.WithContext(ctx).Where("uuid = ?", id).Delete(&model.Tenant{})
+	return tx.Error
+}
+
 func (r *Repo) Search(ctx context.Context, filter model.QueryFilter) (model.TenantList, error) {
 	ctx = context.WithoutCancel(ctx)
 	tenant := model.TenantList{}
@@ -49,6 +56,16 @@ func (r *Repo) Search(ctx context.Context, filter model.QueryFilter) (model.Tena
 	return tenant, nil
 }
 
+func (r *Repo) AddUser(ctx context.Context, tenantID, userID uint) error {
+	ctx = context.WithoutCancel(ctx)
+	tx := r.db.WithContext(ctx)
+
+	return tx.Save(&model.TenantUser{
+		TenantID: tenantID,
+		UserID:   userID,
+	}).Error
+}
+
 func (r *Repo) GetUserList(ctx context.Context, id string) (model.UserList, error) {
 	ctx = context.WithoutCancel(ctx)
 	userList := model.UserList{}
@@ -60,14 +77,4 @@ func (r *Repo) GetUserList(ctx context.Context, id string) (model.UserList, erro
 	}
 
 	return userList, nil
-}
-
-func (r *Repo) AddUser(ctx context.Context, t *model.Tenant, u *model.User) error {
-	ctx = context.WithoutCancel(ctx)
-	tx := r.db.WithContext(ctx)
-
-	return tx.Save(&model.TenantUser{
-		TenantID: t.ID,
-		UserID:   u.ID,
-	}).Error
 }

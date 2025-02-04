@@ -1,11 +1,12 @@
 package admin
 
 import (
+	"sync"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/guneyin/printhub/handler/mw"
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/service/admin"
-	"sync"
 )
 
 const handlerName = "admin"
@@ -36,33 +37,29 @@ func (h *Handler) setRoutes(r fiber.Router) {
 	g := r.Group(h.name()).Use(mw.AdminGuard)
 
 	tenant := g.Group("/tenant")
-	tenant.Get("/", h.getTenantList)
 	tenant.Post("/", h.saveTenant)
+	tenant.Get("/", h.searchTenant)
 	tenant.Get("/id", h.getTenantByID)
-	tenant.Post("/user", h.saveTenantUser)
+	tenant.Delete("/id", h.deleteTenant)
+	tenant.Post("/user", h.addTenantUser)
+	tenant.Get("/user", h.getTenantUserList)
 }
 
-func (h *Handler) boostrap(c *fiber.Ctx) error {
-	cnt, err := h.svc.GetCount(c.Context())
+// @Router /admin/tenant [post].
+func (h *Handler) saveTenant(c *fiber.Ctx) error {
+	tenant, err := model.NewTenant(c.Body())
+	if err != nil {
+		return err
+	}
+	err = h.svc.SaveTenant(c.Context(), tenant)
 	if err != nil {
 		return err
 	}
 
-	if cnt > 0 {
-		return c.Next()
-	}
-
-	if c.Method() == fiber.MethodGet {
-		return c.Redirect(
-			"/admin/auth/register",
-			fiber.StatusTemporaryRedirect)
-	}
-
-	return c.Next()
+	return c.Status(fiber.StatusCreated).JSON(tenant)
 }
 
-func (h *Handler) getTenantList(c *fiber.Ctx) error {
-	//tenant, err := h.svc.GetTenantById(c.Context(), c.Query("filter"))
+func (h *Handler) searchTenant(c *fiber.Ctx) error {
 	filter := new(model.TenantFilter)
 	if err := c.QueryParser(filter); err != nil {
 		return err
@@ -85,32 +82,35 @@ func (h *Handler) getTenantByID(c *fiber.Ctx) error {
 	return c.JSON(tenant)
 }
 
-// saveTenant
-// @Summary tenant create.
-// @Description Create a new tenant.
-// @Tags tenant create
-// @Accept json
-// @Produce json
-// @Param tenant body model.Tenant true "tenant"
-// @Failure default {object} mw.HTTPError
-// @Router /admin/tenant [post]
-func (h *Handler) saveTenant(c *fiber.Ctx) error {
-	tenant, err := model.NewTenant(c.Body())
-	if err != nil {
-		return err
-	}
-	err = h.svc.SaveTenant(c.Context(), tenant)
+func (h *Handler) deleteTenant(c *fiber.Ctx) error {
+	id := c.Params("id")
+	err := h.svc.DeleteTenant(c.Context(), id)
 	if err != nil {
 		return err
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(tenant)
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h *Handler) saveTenantUser(c *fiber.Ctx) error {
-	return nil
+func (h *Handler) addTenantUser(c *fiber.Ctx) error {
+	tenantID := c.Params("tenant_id")
+	userEmail := c.Params("user_email")
+
+	u := &model.User{Role: model.UserRoleTenant, Email: userEmail}
+	err := h.svc.AddTenantUser(c.Context(), tenantID, u)
+	if err != nil {
+		return err
+	}
+
+	return c.SendStatus(fiber.StatusCreated)
 }
 
-//func (h *Handler) getTenantUser(c *fiber.Ctx) error {
-//	list, err := h.svc.GetTenantList()
-//}
+func (h *Handler) getTenantUserList(c *fiber.Ctx) error {
+	tenantID := c.Params("tenant_id")
+	list, err := h.svc.GetTenantUserList(c.Context(), tenantID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(list)
+}

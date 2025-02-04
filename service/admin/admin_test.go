@@ -1,17 +1,20 @@
-package admin
+package admin_test
 
 import (
 	"context"
+	"testing"
+
+	"github.com/guneyin/printhub/service/admin"
+
 	"github.com/guneyin/printhub/market"
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/service/tenant"
 	"github.com/guneyin/printhub/service/user"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 var (
-	svc       *Service
+	svc       *admin.Service
 	userSvc   *user.Service
 	tenantSvc *tenant.Service
 )
@@ -23,7 +26,7 @@ const (
 
 func init() {
 	market.InitTestMarket()
-	svc = GetService()
+	svc = admin.GetService()
 	userSvc = user.GetService()
 	tenantSvc = tenant.GetService()
 }

@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/guneyin/printhub/cmd/api"
 	"github.com/guneyin/printhub/market"
 	"github.com/guneyin/printhub/utils"
-	"log"
-	"time"
 )
 
 // @title PrintHub API Doc
@@ -17,7 +18,7 @@ import (
 // @contact.url https://github.com/guneyin
 // @contact.email guneyin@gmail.com
 
-// @BasePath /api
+// @BasePath /api.
 func main() {
 	utils.SetLastRun(time.Now())
 
@@ -26,5 +27,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Fatal(app.Server.Listen(fmt.Sprintf(":%s", market.Get().Config.ApiPort)))
+	log.Fatal(app.Server.Listen(fmt.Sprintf(":%s", market.Get().Config.APIPort)))
 }

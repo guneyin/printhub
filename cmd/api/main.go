@@ -1,13 +1,14 @@
 package api
 
 import (
+	"encoding/gob"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/guneyin/printhub/handler"
 	"github.com/guneyin/printhub/market"
+	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/server"
 	"github.com/guneyin/printhub/utils"
-	"log/slog"
-	"os"
 )
 
 const appName = "PrintHub"
@@ -20,7 +21,7 @@ type Application struct {
 }
 
 func NewApplication() (*Application, error) {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	gob.Register(&model.Session{})
 
 	market.InitMarket()
 

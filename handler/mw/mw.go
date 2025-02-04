@@ -1,15 +1,15 @@
 package mw
 
 import (
+	"sync"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/gofiber/storage/sqlite3"
 	"github.com/guneyin/printhub/market"
 	"github.com/guneyin/printhub/model"
-	"log/slog"
-	"sync"
-	"time"
 )
 
 var (
@@ -22,7 +22,7 @@ func store() *session.Store {
 		ss = session.New(session.Config{
 			Expiration: time.Hour * 24 * 30,
 			Storage: sqlite3.New(sqlite3.Config{
-				Database: market.Get().Config.DbPath,
+				Database: market.Get().Config.DBPath,
 				Table:    "sessions",
 			}),
 			KeyLookup:         "cookie:session_id",
@@ -41,7 +41,7 @@ func store() *session.Store {
 func getSession(c *fiber.Ctx) *session.Session {
 	s, err := store().Get(c)
 	if err != nil {
-		slog.ErrorContext(c.Context(), "getSession", "error:", err.Error())
+		market.Log().ErrorContext(c.Context(), "getSession", "error:", err.Error())
 		return &session.Session{}
 	}
 	return s
@@ -53,7 +53,7 @@ func AuthorizeSession(c *fiber.Ctx, sess *model.Session) error {
 	s.Set("session", sess)
 	err := s.Save()
 	if err != nil {
-		slog.ErrorContext(c.Context(), "AuthorizeSession", "error:", err.Error())
+		market.Log().ErrorContext(c.Context(), "AuthorizeSession", "error:", err.Error())
 		return err
 	}
 
@@ -98,10 +98,11 @@ func ClientGuard(c *fiber.Ctx) error {
 }
 
 func Sess(c *fiber.Ctx) *model.Session {
-	s := getSession(c)
-	sess := s.Get("session")
-	if sess != nil {
-		return sess.(*model.Session)
+	sess := getSession(c).Get("session")
+
+	if s := sess.(*model.Session); s != nil {
+		return s
 	}
+
 	return &model.Session{}
 }

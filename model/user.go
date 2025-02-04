@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -36,7 +37,7 @@ func NewUser(d []byte) (*User, error) {
 	return u, err
 }
 
-func (u *User) BeforeCreate(tx *gorm.DB) error {
+func (u *User) BeforeCreate(_ *gorm.DB) error {
 	u.UUID = uuid.New().String()
 	u.Password = u.PasswordHash()
 
@@ -47,7 +48,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-func (u *User) BeforeUpdate(tx *gorm.DB) error {
+func (u *User) BeforeUpdate(_ *gorm.DB) error {
 	u.Password = u.PasswordHash()
 	return nil
 }

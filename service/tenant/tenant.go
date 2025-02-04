@@ -2,9 +2,11 @@ package tenant
 
 import (
 	"context"
+	"sync"
+
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/repo/tenant"
-	"sync"
+	"github.com/guneyin/printhub/service/user"
 )
 
 var (
@@ -13,11 +15,15 @@ var (
 )
 
 type Service struct {
-	repo *tenant.Repo
+	repo    *tenant.Repo
+	userSvc *user.Service
 }
 
 func newService() *Service {
-	return &Service{repo: tenant.NewRepo()}
+	return &Service{
+		repo:    tenant.NewRepo(),
+		userSvc: user.GetService(),
+	}
 }
 
 func GetService() *Service {
@@ -48,31 +54,41 @@ func (s *Service) GetByID(ctx context.Context, id string) (*model.Tenant, error)
 	return &list[0], nil
 }
 
-func (s *Service) Delete(ctx context.Context, t *model.Tenant) error {
-	return nil
+func (s *Service) Delete(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) AddUser(ctx context.Context, t *model.Tenant, u *model.User) error {
-	return s.repo.AddUser(ctx, t, u)
+func (s *Service) AddUser(ctx context.Context, tenantID string, u *model.User) error {
+	found, err := s.GetByID(ctx, tenantID)
+	if err != nil {
+		return err
+	}
+
+	created, err := s.userSvc.Create(ctx, u)
+	if err != nil {
+		return err
+	}
+
+	return s.repo.AddUser(ctx, found.ID, created.ID)
 }
 
 func (s *Service) GetUserList(ctx context.Context, id string) (model.UserList, error) {
-
+	return s.repo.GetUserList(ctx, id)
 }
 
-//func (s *Service) GetConfig(ctx context.Context, key string) (*model.ConfigList, error) {
+// func (s *Service) GetConfig(ctx context.Context, key string) (*model.ConfigList, error) {
 //	return s.config.Get(ctx, key)
 //}
 //
-//func (s *Service) SetConfig(ctx context.Context, list *model.ConfigList) error {
+// func (s *Service) SetConfig(ctx context.Context, list *model.ConfigList) error {
 //	return s.config.Set(ctx, list)
 //}
 //
-//func (s *Service) DeleteConfig(ctx context.Context, key string) error {
+// func (s *Service) DeleteConfig(ctx context.Context, key string) error {
 //	return s.config.Delete(ctx, key)
 //}
 
-//func (s *Service) DiskAuth(ctx context.Context, provider string) (string, error) {
+// func (s *Service) DiskAuth(ctx context.Context, provider string) (string, error) {
 //	disk, err := s.getDisk(ctx, provider)
 //	if err != nil {
 //		return "", err
@@ -81,7 +97,7 @@ func (s *Service) GetUserList(ctx context.Context, id string) (model.UserList, e
 //	return disk.InitAuth(), nil
 //}
 //
-//func (s *Service) DiskAuthCallback(ctx context.Context, provider, code string) (*oauth2.Token, error) {
+// func (s *Service) DiskAuthCallback(ctx context.Context, provider, code string) (*oauth2.Token, error) {
 //	disk, err := s.getDisk(ctx, provider)
 //	if err != nil {
 //		return nil, err
@@ -90,7 +106,7 @@ func (s *Service) GetUserList(ctx context.Context, id string) (model.UserList, e
 //	return disk.VerifyAuth(ctx, code)
 //}
 //
-//func (s *Service) getDisk(ctx context.Context, provider string) (disgo.Provider, error) {
+// func (s *Service) getDisk(ctx context.Context, provider string) (disgo.Provider, error) {
 //	if provider == "" {
 //		return nil, fmt.Errorf("invalid provided")
 //	}

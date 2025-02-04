@@ -1,9 +1,12 @@
 package disk
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/guneyin/printhub/service/disk"
+	"net/http"
 	"sync"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/guneyin/printhub/handler/mw"
+	"github.com/guneyin/printhub/service/disk"
 )
 
 const handlerName = "disk"
@@ -31,5 +34,8 @@ func (h *Handler) name() string {
 }
 
 func (h *Handler) setRoutes(r fiber.Router) {
-	//g := h.router.Group(h.name())
+	g := r.Group(h.name()).Use(mw.AdminGuard)
+	g.Get("/", func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	})
 }

@@ -2,15 +2,17 @@ package admin
 
 import (
 	"context"
+	"sync"
+	"time"
+
+	"github.com/guneyin/printhub/market"
+
 	"github.com/guneyin/printhub/model"
 	"github.com/guneyin/printhub/repo/admin"
 	"github.com/guneyin/printhub/service/auth"
 	"github.com/guneyin/printhub/service/tenant"
 	"github.com/guneyin/printhub/service/user"
 	"github.com/guneyin/printhub/utils"
-	"log/slog"
-	"sync"
-	"time"
 )
 
 var (
@@ -50,7 +52,7 @@ func (s *Service) boostrap() {
 	if cnt, _ := s.repo.GetCount(ctx); cnt == 0 {
 		pwd, err := utils.RandomString(10)
 		if err != nil {
-			slog.Error("random string error", "error:", err)
+			market.Log().Error("random string error", "error:", err)
 			return
 		}
 
@@ -64,19 +66,21 @@ func (s *Service) boostrap() {
 
 		err = s.repo.Boostrap(ctx, u)
 		if err != nil {
-			slog.Error("boostrap admin user error", "error:", err)
+			market.Log().Error("boostrap admin user error", "error:", err)
 			return
 		}
 
-		slog.Info("boostrap admin user", "user:", u.Email, "password:", pwd)
+		market.Log().Info("boostrap admin user", "user:", u.Email, "password:", pwd)
 		return
 	}
-
-	return
 }
 
 func (s *Service) GetCount(ctx context.Context) (int64, error) {
 	return s.repo.GetCount(ctx)
+}
+
+func (s *Service) SaveTenant(ctx context.Context, t *model.Tenant) error {
+	return s.tenant.Save(ctx, t)
 }
 
 func (s *Service) SearchTenant(ctx context.Context, filter model.QueryFilter) (model.TenantList, error) {
@@ -84,17 +88,17 @@ func (s *Service) SearchTenant(ctx context.Context, filter model.QueryFilter) (m
 }
 
 func (s *Service) GetTenantByID(ctx context.Context, id string) (*model.Tenant, error) {
-	filter := new(model.TenantFilter)
-	filter.ID = id
-
-	list, err := s.tenant.Search(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-
-	return &list[0], nil
+	return s.tenant.GetByID(ctx, id)
 }
 
-func (s *Service) SaveTenant(ctx context.Context, t *model.Tenant) error {
-	return s.tenant.Save(ctx, t)
+func (s *Service) DeleteTenant(ctx context.Context, id string) error {
+	return s.tenant.Delete(ctx, id)
+}
+
+func (s *Service) AddTenantUser(ctx context.Context, tenantID string, user *model.User) error {
+	return s.tenant.AddUser(ctx, tenantID, user)
+}
+
+func (s *Service) GetTenantUserList(ctx context.Context, id string) (model.UserList, error) {
+	return s.tenant.GetUserList(ctx, id)
 }

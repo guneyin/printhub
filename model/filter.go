@@ -23,7 +23,7 @@ func Query(obj QueryFilter) (string, []interface{}) {
 			param := vals.Type().Field(i).Tag.Get("query")
 			if param == "" {
 				continue
-				//args = append(args, field.FieldByName(vals.Type().Field(i).Name).Interface())
+				// args = append(args, field.FieldByName(vals.Type().Field(i).Name).Interface())
 			}
 
 			params := strings.Split(param, ",")

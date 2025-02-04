@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+
 	"github.com/guneyin/printhub/market"
 	"github.com/guneyin/printhub/model"
 	"gorm.io/gorm"
@@ -24,7 +25,7 @@ func (r *Repo) GetByUUID(ctx context.Context, uuid string) (*model.User, error) 
 	ctx = context.WithoutCancel(ctx)
 
 	user := &model.User{}
-	tx := r.db.Where("uuid = ?", uuid).Find(user)
+	tx := r.db.WithContext(ctx).Where("uuid = ?", uuid).Find(user)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
@@ -40,7 +41,8 @@ func (r *Repo) GetByEmail(ctx context.Context, email string, role model.UserRole
 	}
 
 	var user *model.User
-	tx := r.db.Model(&model.User{}).Where("email = ? and role = ?", email, ur).First(&user)
+	tx := r.db.WithContext(ctx).
+		Model(&model.User{}).Where("email = ? and role = ?", email, ur).First(&user)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
@@ -49,7 +51,7 @@ func (r *Repo) GetByEmail(ctx context.Context, email string, role model.UserRole
 
 func (r *Repo) Create(ctx context.Context, u *model.User) (*model.User, error) {
 	ctx = context.WithoutCancel(ctx)
-	tx := r.db.
+	tx := r.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "role"}, {Name: "email"}},
 			UpdateAll: true,
@@ -63,7 +65,7 @@ func (r *Repo) Create(ctx context.Context, u *model.User) (*model.User, error) {
 
 func (r *Repo) Update(ctx context.Context, u *model.User) (*model.User, error) {
 	ctx = context.WithoutCancel(ctx)
-	tx := r.db.Updates(u)
+	tx := r.db.WithContext(ctx).Updates(u)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}

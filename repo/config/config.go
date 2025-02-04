@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"errors"
+
 	"github.com/guneyin/printhub/market"
 	"github.com/guneyin/printhub/model"
 	"gorm.io/gorm"
@@ -29,7 +30,7 @@ func (r *Repo) Get(ctx context.Context, id, module, key string) (*model.Config, 
 		Key:        key,
 	}
 
-	tx := r.db.Where(obj).First(obj)
+	tx := r.db.WithContext(ctx).Where(obj).First(obj)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
@@ -41,7 +42,7 @@ func (r *Repo) Get(ctx context.Context, id, module, key string) (*model.Config, 
 
 func (r *Repo) Set(ctx context.Context, list *model.ConfigList) error {
 	ctx = context.WithoutCancel(ctx)
-	tx := r.db.
+	tx := r.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "identifier"}, {Name: "module"}, {Name: "key"}},
 			DoUpdates: clause.AssignmentColumns([]string{"value"}),
@@ -56,7 +57,7 @@ func (r *Repo) Delete(ctx context.Context, id, module, key string) error {
 		Module:     module,
 		Key:        key,
 	}
-	return r.db.Delete(&model.Config{}, cond).Error
+	return r.db.WithContext(ctx).Delete(&model.Config{}, cond).Error
 }
 
 func (r *Repo) migrate() {

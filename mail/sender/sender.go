@@ -2,11 +2,12 @@ package sender
 
 import (
 	"errors"
+	"net/mail"
+	"strconv"
+
 	"github.com/go-gomail/gomail"
 	"github.com/guneyin/printhub/market"
 	"github.com/matcornic/hermes/v2"
-	"net/mail"
-	"strconv"
 )
 
 type smtpAuthentication struct {
@@ -20,23 +21,24 @@ type smtpAuthentication struct {
 
 func SendMail(to, subject string, email hermes.Email) error {
 	cfg := market.Get().Config
-	if cfg.MailEnabled == false {
+	if !cfg.MailEnabled {
 		return errors.New("mail sender disabled by default")
 	}
 
 	h := hermes.Hermes{
 		Product: hermes.Product{
-			Name:        cfg.AppName,
-			Link:        cfg.AppURL,
-			Logo:        "https://github.com/matcornic/hermes/blob/master/examples/gopher.png?raw=true",
-			Copyright:   "portfoyum.com © 2020 - Tüm Hakları Saklıdır",
-			TroubleText: "{ACTION} düğmesiyle ilgili sorun yaşıyorsanız, aşağıdaki URL'yi kopyalayıp web tarayıcınıza yapıştırın.",
+			Name:      cfg.AppName,
+			Link:      cfg.AppURL,
+			Logo:      "https://github.com/matcornic/hermes/blob/master/examples/gopher.png?raw=true",
+			Copyright: "portfoyum.com © 2020 - Tüm Hakları Saklıdır",
+			TroubleText: "{ACTION} düğmesiyle ilgili sorun yaşıyorsanız," +
+				"aşağıdaki URL'yi kopyalayıp web tarayıcınıza yapıştırın.",
 		},
 	}
 
 	h.Theme = new(hermes.Flat)
 
-	//email.Body.Name = u.Name + " " + u.Surname
+	// email.Body.Name = u.Name + " " + u.Surname
 	email.Body.Greeting = "Merhaba"
 	email.Body.Signature = "Teşekkürler"
 
@@ -52,13 +54,13 @@ func SendMail(to, subject string, email hermes.Email) error {
 	return send(to, subject, htmlBytes, txtBytes)
 }
 
-// send sends the email
+// send sends the email.
 func send(to, subject, htmlBody, txtBody string) error {
 	cfg := market.Get().Config
 
 	smtpConfig := smtpAuthentication{
-		Server:         cfg.EmailSmtpServer,
-		Port:           cfg.EmailSmtpPort,
+		Server:         cfg.EmailSMTPServer,
+		Port:           cfg.EmailSMTPPort,
 		SenderEmail:    cfg.EmailSender,
 		SenderIdentity: cfg.EmailIdentity,
 		SMTPPassword:   cfg.EmailPassword,

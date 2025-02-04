@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+
 	"gorm.io/gorm"
 )
 

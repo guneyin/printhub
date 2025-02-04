@@ -1,14 +1,10 @@
 package model
 
 import (
-	"encoding/gob"
-	"github.com/google/uuid"
 	"slices"
-)
 
-func init() {
-	gob.Register(&Session{})
-}
+	"github.com/google/uuid"
+)
 
 type Session struct {
 	ID       string `json:"id"`

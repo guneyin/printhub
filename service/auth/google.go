@@ -2,14 +2,16 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/url"
+
 	"github.com/guneyin/printhub/market"
 	"github.com/guneyin/printhub/model"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	gapi "google.golang.org/api/oauth2/v2"
 	"google.golang.org/api/option"
-	"net/url"
 )
 
 var (
@@ -36,14 +38,14 @@ func (gp *googleProvider) config() *oauth2.Config {
 
 	return &oauth2.Config{
 		RedirectURL:  fmt.Sprintf("%s/oauth/google/callback", cfg.AppURL),
-		ClientID:     cfg.GoogleClientId,
+		ClientID:     cfg.GoogleClientID,
 		ClientSecret: cfg.GoogleClientSecret,
 		Scopes:       googleAuthScopes,
 		Endpoint:     google.Endpoint,
 	}
 }
 
-func (gp *googleProvider) InitOAuth(role model.UserRole, cbUrl string, force bool) (string, error) {
+func (gp *googleProvider) InitOAuth(role model.UserRole, force bool) (string, error) {
 	opts := []oauth2.AuthCodeOption{
 		oauth2.AccessTypeOnline,
 	}
@@ -52,7 +54,6 @@ func (gp *googleProvider) InitOAuth(role model.UserRole, cbUrl string, force boo
 	}
 
 	config := gp.config()
-	//config.RedirectURL = cbUrl
 
 	u := config.AuthCodeURL(string(role), opts...)
 	au, err := url.Parse(u)
@@ -70,7 +71,7 @@ func (gp *googleProvider) CompleteOAuth(ctx context.Context, code string) (*OAut
 	}
 
 	if !token.Valid() {
-		return nil, fmt.Errorf("token is invalid")
+		return nil, errors.New("token is invalid")
 	}
 
 	ts := gp.config().TokenSource(ctx, token)

@@ -1,32 +1,35 @@
-package auth
+package auth_test
 
 import (
 	"context"
+	"log"
+	"testing"
+
+	"github.com/guneyin/printhub/service/auth"
+
 	"github.com/google/uuid"
 	"github.com/guneyin/printhub/market"
 	"github.com/guneyin/printhub/model"
 	"github.com/joho/godotenv"
-	"log/slog"
-	"testing"
 )
 
 func init() {
 	err := godotenv.Load("../../.env")
 	if err != nil {
-		slog.Warn("error loading test .env file")
+		log.Print("Error loading .env file")
 	}
 	market.InitMarket()
 }
 
 func TestToken(t *testing.T) {
 	uid := uuid.New()
-	hashed, err := generateToken(uid.String())
+	hashed, err := auth.GenerateToken(uid.String())
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("hashed:", hashed)
 
-	verified, err := verifyToken(hashed)
+	verified, err := auth.VerifyToken(hashed)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,18 +40,18 @@ func TestToken(t *testing.T) {
 	}
 }
 
-func TestForgotPassword(t *testing.T) {
+func TestForgotPassword(_ *testing.T) {
 	ctx := context.Background()
 	email := "guneyin@gmail.com"
 	role := model.UserRoleAdmin
 
-	svc := newService()
+	svc := auth.GetService()
 	svc.RecoverPassword(ctx, email, role)
 }
 
 func TestValidate(t *testing.T) {
 	ctx := context.Background()
-	svc := newService()
+	svc := auth.GetService()
 
 	token := generateTestToken()
 	u, err := svc.ValidateUser(ctx, token)
@@ -59,13 +62,13 @@ func TestValidate(t *testing.T) {
 }
 
 func generateTestToken() string {
-	hashed, _ := generateToken(uuid.New().String())
+	hashed, _ := auth.GenerateToken(uuid.New().String())
 	return hashed
 }
 
 func TestValidateToken(t *testing.T) {
 	token := generateTestToken()
-	uid, err := verifyToken(token)
+	uid, err := auth.VerifyToken(token)
 	if err != nil {
 		t.Fatal(err)
 	}
